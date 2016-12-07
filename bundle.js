@@ -24,6 +24,33 @@ map.on('load', function() {
 
 });
 
+// the 'building' layer in the mapbox-streets vector source contains building-height
+// data from OpenStreetMap.
+map.on('load', function() {
+    map.addLayer({
+        'id': '3d-buildings',
+        'source': 'composite',
+        'source-layer': 'building',
+        'filter': [
+            '==', 'extrude', 'true'
+        ],
+        'type': 'fill-extrusion',
+        'minzoom': 15,
+        'paint': {
+            'fill-extrusion-color': '#eee',
+            'fill-extrusion-height': {
+                'type': 'identity',
+                'property': 'height'
+            },
+            'fill-extrusion-base': {
+                'type': 'identity',
+                'property': 'min_height'
+            },
+            'fill-extrusion-opacity': .4
+        }
+    });
+});
+
 },{"./mapbox-gl-live":2}],2:[function(require,module,exports){
 // mapbox-gl-live: Live tools to add interactivity to your Mapbox GL map
 //  inspector: Explore the map data by inspecting features with the mouse
