@@ -48,7 +48,7 @@ map.on('load', function() {
             },
             'fill-extrusion-opacity': .4
         }
-    });
+    }, 'housenum-label');
 });
 
 },{"./mapbox-gl-live":2}],2:[function(require,module,exports){

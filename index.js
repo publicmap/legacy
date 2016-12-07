@@ -47,5 +47,5 @@ map.on('load', function() {
             },
             'fill-extrusion-opacity': .4
         }
-    });
+    }, 'housenum-label');
 });
