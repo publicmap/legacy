@@ -10,4 +10,5 @@ A data explorer for [Data{Meet} Pune's](http://datameet.org/chapters/pune/) Maha
 
 
 **About publicmap bites**
+
 A place to try out experiments with making open maps for the public. You can improve the map live on [OpenStreetMap](https://osm.org).
