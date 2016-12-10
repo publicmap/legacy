@@ -27,7 +27,7 @@ var Live = {
         map.on(opts.on, function(e) {
 
             // Select the first feature from the list of features near the mouse
-            var feature = map.queryRenderedFeatures(e.point, {layers: opts.layers})[0];
+            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: opts.layers})[0];
             console.log(feature);
             var popupHTML = populateTable(feature);
             var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
@@ -36,10 +36,34 @@ var Live = {
 
         // Change the mouse to a pointer on hovering over inspectable features
         map.on('mousemove', function(e) {
-            var features = map.queryRenderedFeatures(e.point, {layers: opts.layers});
+            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 2), {layers: opts.layers});
+            if (features.length) 
+                map.getSource('hover').setData(features[0]);
             map.getCanvas().style.cursor = (features.length)
                 ? 'pointer'
                 : '';
+        });
+
+        // Highlight hovered over features
+        map.addSource('hover', {
+            type: 'geojson',
+            data: {
+                "type": "FeatureCollection",
+                "features": []
+            }
+        });
+        map.addLayer({
+            "id": "route",
+            "type": "line",
+            "source": "hover",
+            "layout": {
+                "line-join": "round"
+            },
+            "paint": {
+                "line-color": "#627BC1",
+                "line-width": 3,
+                "line-opacity": 0.5
+            }
         });
 
     }
@@ -90,6 +114,23 @@ function nominatimLink(name, coordinates) {
 
     return NOMINATIM_BASE + NOMINATIM_OPTS;
 
+}
+
+// Geometry functions
+
+// Return a square bbox of pixel coordinates from a given x,y point
+function pixelPointToSquare(point, width) {
+    var pointToSquare = [
+        [
+            point.x - width / 2,
+            point.y - width / 2
+        ],
+        [
+            point.x + width / 2,
+            point.y + width / 2
+        ]
+    ];
+    return pointToSquare;
 }
 
 // Export module

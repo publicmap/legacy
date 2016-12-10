@@ -1,0 +1,14 @@
+{
+  "name": "public-map-bites",
+  "version": "0.0.1",
+  "description": "Maharashtra village map",
+  "main": "index.js",
+  "scripts": {
+    "start": "budo index.js --serve=bundle.js --live -d",
+    "build": "browserify index.js > bundle.js"
+  },
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "budo": "^9.2.1"
+  }
+}
