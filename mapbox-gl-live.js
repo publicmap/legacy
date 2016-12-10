@@ -4,7 +4,7 @@
 var xtend = require('xtend');
 var urlencode = require('urlencode');
 
-defaultOpts = {
+defaultOptions = {
     layers: [
         'building',
         'road-label-large',
@@ -19,15 +19,17 @@ defaultOpts = {
 var Live = {
 
     // Inspect map layers on mouse interactivity
-    inspector: function(map, opts) {
+    // options.layers : <Array> of layer ids to make interactive
+    // options.on : <Event>
+    inspector: function(map, options) {
 
-        opts = xtend(defaultOpts, opts);
+        options = xtend(defaultOptions, options);
 
         // Query features on interaction with the layers
-        map.on(opts.on, function(e) {
+        map.on(options.on, function(e) {
 
             // Select the first feature from the list of features near the mouse
-            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: opts.layers})[0];
+            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers})[0];
             console.log(feature);
             var popupHTML = populateTable(feature);
             var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
@@ -36,9 +38,8 @@ var Live = {
 
         // Change the mouse to a pointer on hovering over inspectable features
         map.on('mousemove', function(e) {
-            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 2), {layers: opts.layers});
-            if (features.length) 
-                map.getSource('hover').setData(features[0]);
+            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 2), {layers: options.layers});
+            features.length && map.getSource('hover').setData(features[0]);
             map.getCanvas().style.cursor = (features.length)
                 ? 'pointer'
                 : '';
@@ -106,13 +107,13 @@ function nominatimLink(name, coordinates) {
         var right = coordinates[0] + 1;
         var bottom = coordinates[1] + 1;
 
-        var NOMINATIM_OPTS = name + "&polygon=1&bounded=1&viewbox=" + left + "%2C" + top + "%2C" + right + "%2C" + bottom
+        var NOMINATIM_options = name + "&polygon=1&bounded=1&viewbox=" + left + "%2C" + top + "%2C" + right + "%2C" + bottom
 
     } catch (e) {
-        var NOMINATIM_OPTS = urlencode(name);
+        var NOMINATIM_options = urlencode(name);
     }
 
-    return NOMINATIM_BASE + NOMINATIM_OPTS;
+    return NOMINATIM_BASE + NOMINATIM_options;
 
 }
 
