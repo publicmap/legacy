@@ -14,9 +14,7 @@ var map = new mapboxgl.Map({
     ],
     hash: true
 });
-
-map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
-map.addControl(new mapboxgl.ScaleControl());
+mapboxglLive.initmap(map);
 
 map.on('load', function() {
 
@@ -24,6 +22,9 @@ map.on('load', function() {
     mapboxglLive.inspector(map, {
         layers: ['mh-villages line', 'mh-villages point']
     });
+
+    // Add notes to the map on click
+    mapboxglLive.notes(map);
 
 });
 
@@ -5149,7 +5150,7 @@ function config (name) {
 var xtend = require('xtend');
 var urlencode = require('urlencode');
 
-defaultOpts = {
+defaultOptions = {
     layers: [
         'building',
         'road-label-large',
@@ -5161,18 +5162,28 @@ defaultOpts = {
     on: 'click'
 }
 
+// Datests setup
+// 1. Create a new access token with the `datasets:read` and `datasets:write` scope. Request for a beta access if you do not see this option https://www.mapbox.com/api-documentation/#datasets
+var mapboxAccessDatasetToken = 'sk.eyJ1IjoidGhlcGxhbmVtYWQiLCJhIjoiY2l3a2Jkazl1MDAwbjJvbXN1MXZzNXJwNyJ9.kNJ9l7CjEfQU4TfWnGpUFw';
+
+// 2. Create a new Mapbox dataset and set the dataset location https://www.mapbox.com/blog/wildfire-datasets/
+var dataset = 'ciwkbb8dm00092ymsu2dt5bvw';
+var DATASETS_BASE = 'https://api.mapbox.com/datasets/v1/theplanemad/' + dataset + '/';
+
 var Live = {
 
     // Inspect map layers on mouse interactivity
-    inspector: function(map, opts) {
+    // options.layers : <Array> of layer ids to make interactive
+    // options.on : <Event>
+    inspector: function(map, options) {
 
-        opts = xtend(defaultOpts, opts);
+        options = xtend(defaultOptions, options);
 
         // Query features on interaction with the layers
-        map.on(opts.on, function(e) {
+        map.on(options.on, function(e) {
 
             // Select the first feature from the list of features near the mouse
-            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: opts.layers})[0];
+            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers})[0];
             console.log(feature);
             var popupHTML = populateTable(feature);
             var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
@@ -5181,9 +5192,8 @@ var Live = {
 
         // Change the mouse to a pointer on hovering over inspectable features
         map.on('mousemove', function(e) {
-            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 2), {layers: opts.layers});
-            if (features.length) 
-                map.getSource('hover').setData(features[0]);
+            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 2), {layers: options.layers});
+            features.length && map.getSource('hover').setData(features[0]);
             map.getCanvas().style.cursor = (features.length)
                 ? 'pointer'
                 : '';
@@ -5210,7 +5220,17 @@ var Live = {
                 "line-opacity": 0.5
             }
         });
+    },
 
+    notes: function(map, options) {
+        return;
+    },
+
+    // Init map controls
+    initmap: function addDefaultControls(map, options) {
+        map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
+        map.addControl(new mapboxgl.ScaleControl());
+        map.addControl(new mapboxgl.NavigationControl());
     }
 }
 
@@ -5251,13 +5271,13 @@ function nominatimLink(name, coordinates) {
         var right = coordinates[0] + 1;
         var bottom = coordinates[1] + 1;
 
-        var NOMINATIM_OPTS = name + "&polygon=1&bounded=1&viewbox=" + left + "%2C" + top + "%2C" + right + "%2C" + bottom
+        var NOMINATIM_options = name + "&polygon=1&bounded=1&viewbox=" + left + "%2C" + top + "%2C" + right + "%2C" + bottom
 
     } catch (e) {
-        var NOMINATIM_OPTS = urlencode(name);
+        var NOMINATIM_options = urlencode(name);
     }
 
-    return NOMINATIM_BASE + NOMINATIM_OPTS;
+    return NOMINATIM_BASE + NOMINATIM_options;
 
 }
 
@@ -5279,7 +5299,7 @@ function pixelPointToSquare(point, width) {
 }
 
 // Export module
-module.exports = Live;
+module.exports = Live;;
 
 },{"urlencode":50,"xtend":51}],29:[function(require,module,exports){
 (function (Buffer){

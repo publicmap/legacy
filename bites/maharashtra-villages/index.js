@@ -13,9 +13,7 @@ var map = new mapboxgl.Map({
     ],
     hash: true
 });
-
-map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
-map.addControl(new mapboxgl.ScaleControl());
+mapboxglLive.initmap(map);
 
 map.on('load', function() {
 
@@ -23,5 +21,8 @@ map.on('load', function() {
     mapboxglLive.inspector(map, {
         layers: ['mh-villages line', 'mh-villages point']
     });
+
+    // Add notes to the map on click
+    mapboxglLive.notes(map);
 
 });

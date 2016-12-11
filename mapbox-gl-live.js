@@ -16,6 +16,14 @@ defaultOptions = {
     on: 'click'
 }
 
+// Datests setup
+// 1. Create a new access token with the `datasets:read` and `datasets:write` scope. Request for a beta access if you do not see this option https://www.mapbox.com/api-documentation/#datasets
+var mapboxAccessDatasetToken = 'sk.eyJ1IjoidGhlcGxhbmVtYWQiLCJhIjoiY2l3a2Jkazl1MDAwbjJvbXN1MXZzNXJwNyJ9.kNJ9l7CjEfQU4TfWnGpUFw';
+
+// 2. Create a new Mapbox dataset and set the dataset location https://www.mapbox.com/blog/wildfire-datasets/
+var dataset = 'ciwkbb8dm00092ymsu2dt5bvw';
+var DATASETS_BASE = 'https://api.mapbox.com/datasets/v1/theplanemad/' + dataset + '/';
+
 var Live = {
 
     // Inspect map layers on mouse interactivity
@@ -66,7 +74,17 @@ var Live = {
                 "line-opacity": 0.5
             }
         });
+    },
 
+    notes: function(map, options) {
+        return;
+    },
+
+    // Init map controls
+    initmap: function addDefaultControls(map, options) {
+        map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
+        map.addControl(new mapboxgl.ScaleControl());
+        map.addControl(new mapboxgl.NavigationControl());
     }
 }
 
@@ -135,4 +153,4 @@ function pixelPointToSquare(point, width) {
 }
 
 // Export module
-module.exports = Live;
+module.exports = Live;;
