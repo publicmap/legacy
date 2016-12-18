@@ -14,7 +14,9 @@ var map = new mapboxgl.Map({
     hash: true
 });
 
-map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
+mapboxglLive.initmap(map);
+
+mapboxglLive.addLayerInput(map);
 
 map.on('load', function() {
 

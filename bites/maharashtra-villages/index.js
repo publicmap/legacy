@@ -13,6 +13,7 @@ var map = new mapboxgl.Map({
     ],
     hash: true
 });
+
 mapboxglLive.initmap(map);
 
 map.on('load', function() {
