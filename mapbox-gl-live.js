@@ -250,7 +250,7 @@ function populateTable(feature) {
     // based on the feature found.
 
     var popupHTML = "<h3>" + feature.properties.name + "</h3>";
-    popupHTML += "<a href='" + nominatimLink(feature.properties.name, feature.geometry.coordinates) + "'>OSM Search</a><br>";
+    popupHTML += "<a href='" + nominatimLink(feature.properties.name, feature.geometry.coordinates[0][0]) + "'>OSM Search</a><br>";
 
     popupHTML += "<table style='table-layout:fixed'>";
 
