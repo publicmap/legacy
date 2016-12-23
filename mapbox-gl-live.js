@@ -219,9 +219,6 @@ var Live = {
                 var url = $(this).val();
                 console.log(url);
 
-                // var wmsURL = 'https://geodata.state.nj.us/imagerywms/Natural2015?bbox={bbox-epsg-3857}&format=image/png&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=Natural2015';
-                var wmsURL = 'https://vtile4.nrsc.gov.in/bhuvan/gwc/service/wms/?LAYERS=vector%3Acity_hq&TRANSPARENT=TRUE&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&STYLES=&FORMAT=image%2Fpng&SRS=EPSG%3A4326&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256';
-                var wmsURL = 'https://tile1.nrsc.gov.in/tilecache/tilecache.py/1.0.0/bhuvan_imagery2/{z}/{x}/{y}.jepg';
                 map.addSource('custom-raster-layer', {
                     'type': 'raster',
                     'tiles': [url],
