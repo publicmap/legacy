@@ -12,6 +12,7 @@ var DATASETS_BASE = 'https://api.mapbox.com/datasets/v1/theplanemad/' + dataset 
 var xtend = require('xtend');
 var urlencode = require('urlencode');
 var MapboxClient = require('mapbox/lib/services/datasets');
+var geojsonCoords = require('geojson-coords');
 var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 
 defaultOptions = {
@@ -39,10 +40,13 @@ var Live = {
         map.on(options.on, function(e) {
 
             // Select the first feature from the list of features near the mouse
-            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers})[0];
-            console.log(feature);
-            var popupHTML = populateTable(feature);
-            var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
+            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers});
+
+            if (features.length > 0) {
+                console.log(features[0]);
+                var popupHTML = populateTable(features[0]);
+                var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
+            }
 
         });
 
@@ -249,8 +253,15 @@ function populateTable(feature) {
     // Populate the popup and set its coordinates
     // based on the feature found.
 
+    try {
+        var coordinates = geojsonCoords(feature);
+    } catch (e) {
+        console.log(e);
+        coordinates = [];
+    }
+
     var popupHTML = "<h3>" + feature.properties.name + "</h3>";
-    popupHTML += "<a href='" + nominatimLink(feature.properties.name, feature.geometry.coordinates) + "'>OSM Search</a><br>";
+    popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
 
     popupHTML += "<table style='table-layout:fixed'>";
 
