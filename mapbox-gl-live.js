@@ -261,7 +261,10 @@ function populateTable(feature) {
     }
 
     var popupHTML = "<h3>" + feature.properties.name + "</h3>";
-    popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
+
+    // Show nominatim link if feature has a name
+    if (feature.properties.name != undefined)
+        popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
 
     popupHTML += "<table style='table-layout:fixed'>";
 
