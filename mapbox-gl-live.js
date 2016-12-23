@@ -219,9 +219,6 @@ var Live = {
                 var url = $(this).val();
                 console.log(url);
 
-                // var wmsURL = 'https://geodata.state.nj.us/imagerywms/Natural2015?bbox={bbox-epsg-3857}&format=image/png&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=Natural2015';
-                var wmsURL = 'http://vtile4.nrsc.gov.in/bhuvan/gwc/service/wms/?LAYERS=vector%3Acity_hq&TRANSPARENT=TRUE&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&STYLES=&FORMAT=image%2Fpng&SRS=EPSG%3A4326&BBOX={bbox-epsg-4326}&WIDTH=256&HEIGHT=256';
-                var wmsURL = 'http://tile1.nrsc.gov.in/tilecache/tilecache.py/1.0.0/bhuvan_imagery2/{z}/{x}/{y}.jepg';
                 map.addSource('custom-raster-layer', {
                     'type': 'raster',
                     'tiles': [url],
@@ -261,7 +258,10 @@ function populateTable(feature) {
     }
 
     var popupHTML = "<h3>" + feature.properties.name + "</h3>";
-    popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
+
+    // Show nominatim link if feature has a name
+    if (feature.properties.name != undefined)
+        popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
 
     popupHTML += "<table style='table-layout:fixed'>";
 
