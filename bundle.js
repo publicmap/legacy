@@ -68,6 +68,7 @@ var DATASETS_BASE = 'https://api.mapbox.com/datasets/v1/theplanemad/' + dataset 
 var xtend = require('xtend');
 var urlencode = require('urlencode');
 var MapboxClient = require('mapbox/lib/services/datasets');
+var geojsonCoords = require('geojson-coords');
 var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 
 defaultOptions = {
@@ -95,10 +96,13 @@ var Live = {
         map.on(options.on, function(e) {
 
             // Select the first feature from the list of features near the mouse
-            var feature = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers})[0];
-            console.log(feature);
-            var popupHTML = populateTable(feature);
-            var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
+            var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers});
+
+            if (features.length > 0) {
+                console.log(features[0]);
+                var popupHTML = populateTable(features[0]);
+                var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
+            }
 
         });
 
@@ -271,9 +275,6 @@ var Live = {
                 var url = $(this).val();
                 console.log(url);
 
-                // var wmsURL = 'https://geodata.state.nj.us/imagerywms/Natural2015?bbox={bbox-epsg-3857}&format=image/png&service=WMS&version=1.1.1&request=GetMap&srs=EPSG:3857&width=256&height=256&layers=Natural2015';
-                var wmsURL = 'http://vtile4.nrsc.gov.in/bhuvan/gwc/service/wms/?LAYERS=vector%3Acity_hq&TRANSPARENT=TRUE&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&STYLES=&FORMAT=image%2Fpng&SRS=EPSG%3A4326&BBOX={bbox-epsg-4326}&WIDTH=256&HEIGHT=256';
-                var wmsURL = 'http://tile1.nrsc.gov.in/tilecache/tilecache.py/1.0.0/bhuvan_imagery2/{z}/{x}/{y}.jepg';
                 map.addSource('custom-raster-layer', {
                     'type': 'raster',
                     'tiles': [url],
@@ -305,8 +306,18 @@ function populateTable(feature) {
     // Populate the popup and set its coordinates
     // based on the feature found.
 
+    try {
+        var coordinates = geojsonCoords(feature);
+    } catch (e) {
+        console.log(e);
+        coordinates = [];
+    }
+
     var popupHTML = "<h3>" + feature.properties.name + "</h3>";
-    popupHTML += "<a href='" + nominatimLink(feature.properties.name, feature.geometry.coordinates) + "'>OSM Search</a><br>";
+
+    // Show nominatim link if feature has a name
+    if (feature.properties.name != undefined)
+        popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
 
     popupHTML += "<table style='table-layout:fixed'>";
 
@@ -367,7 +378,7 @@ function pixelPointToSquare(point, width) {
 module.exports = Live;
 rts = Live;
 
-},{"mapbox/lib/services/datasets":43,"urlencode":84,"xtend":107}],3:[function(require,module,exports){
+},{"geojson-coords":11,"mapbox/lib/services/datasets":47,"urlencode":88,"xtend":111}],3:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -728,7 +739,7 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":88}],4:[function(require,module,exports){
+},{"util/":92}],4:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -2751,7 +2762,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":4,"ieee754":33,"isarray":36}],8:[function(require,module,exports){
+},{"base64-js":4,"ieee754":37,"isarray":40}],8:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -2862,7 +2873,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":35}],9:[function(require,module,exports){
+},{"../../is-buffer/index.js":39}],9:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3167,6 +3178,128 @@ function isUndefined(arg) {
 }
 
 },{}],10:[function(require,module,exports){
+module.exports = function flatten(list, depth) {
+    return _flatten(list);
+
+    function _flatten(list) {
+        if (Array.isArray(list) && list.length &&
+            typeof list[0] === 'number') {
+            return [list];
+        }
+        return list.reduce(function (acc, item) {
+            if (Array.isArray(item) && Array.isArray(item[0])) {
+                return acc.concat(_flatten(item));
+            } else {
+                acc.push(item);
+                return acc;
+            }
+        }, []);
+    }
+};
+
+},{}],11:[function(require,module,exports){
+var geojsonNormalize = require('geojson-normalize'),
+    geojsonFlatten = require('geojson-flatten'),
+    flatten = require('./flatten');
+
+module.exports = function(_) {
+    if (!_) return [];
+    var normalized = geojsonFlatten(geojsonNormalize(_)),
+        coordinates = [];
+    normalized.features.forEach(function(feature) {
+        if (!feature.geometry) return;
+        coordinates = coordinates.concat(flatten(feature.geometry.coordinates));
+    });
+    return coordinates;
+};
+
+},{"./flatten":10,"geojson-flatten":12,"geojson-normalize":13}],12:[function(require,module,exports){
+module.exports = flatten;
+
+function flatten(gj, up) {
+    switch ((gj && gj.type) || null) {
+        case 'FeatureCollection':
+            gj.features = gj.features.reduce(function(mem, feature) {
+                return mem.concat(flatten(feature));
+            }, []);
+            return gj;
+        case 'Feature':
+            return flatten(gj.geometry).map(function(geom) {
+                return {
+                    type: 'Feature',
+                    properties: JSON.parse(JSON.stringify(gj.properties)),
+                    geometry: geom
+                };
+            });
+        case 'MultiPoint':
+            return gj.coordinates.map(function(_) {
+                return { type: 'Point', coordinates: _ };
+            });
+        case 'MultiPolygon':
+            return gj.coordinates.map(function(_) {
+                return { type: 'Polygon', coordinates: _ };
+            });
+        case 'MultiLineString':
+            return gj.coordinates.map(function(_) {
+                return { type: 'LineString', coordinates: _ };
+            });
+        case 'GeometryCollection':
+            return gj.geometries;
+        case 'Point':
+        case 'Polygon':
+        case 'LineString':
+            return [gj];
+        default:
+            return gj;
+    }
+}
+
+},{}],13:[function(require,module,exports){
+module.exports = normalize;
+
+var types = {
+    Point: 'geometry',
+    MultiPoint: 'geometry',
+    LineString: 'geometry',
+    MultiLineString: 'geometry',
+    Polygon: 'geometry',
+    MultiPolygon: 'geometry',
+    GeometryCollection: 'geometry',
+    Feature: 'feature',
+    FeatureCollection: 'featurecollection'
+};
+
+/**
+ * Normalize a GeoJSON feature into a FeatureCollection.
+ *
+ * @param {object} gj geojson data
+ * @returns {object} normalized geojson data
+ */
+function normalize(gj) {
+    if (!gj || !gj.type) return null;
+    var type = types[gj.type];
+    if (!type) return null;
+
+    if (type === 'geometry') {
+        return {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                properties: {},
+                geometry: gj
+            }]
+        };
+    } else if (type === 'feature') {
+        return {
+            type: 'FeatureCollection',
+            features: [gj]
+        };
+    } else if (type === 'featurecollection') {
+        return gj;
+    }
+}
+
+},{}],14:[function(require,module,exports){
 /**
  * @alias geojsonhint
  * @param {(string|object)} GeoJSON given as a string or as an object
@@ -3498,7 +3631,7 @@ function hint(gj, options) {
 
 module.exports.hint = hint;
 
-},{}],11:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var hat = module.exports = function (bits, base) {
     if (!base) base = 16;
     if (bits === undefined) bits = 128;
@@ -3562,7 +3695,7 @@ hat.rack = function (bits, base, expandBy) {
     return fn;
 };
 
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -4120,7 +4253,7 @@ function findIdx(table, val) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7}],13:[function(require,module,exports){
+},{"buffer":7}],17:[function(require,module,exports){
 "use strict"
 
 // Description of supported double byte encodings and aliases.
@@ -4292,7 +4425,7 @@ module.exports = {
 
 };
 
-},{"./tables/big5-added.json":19,"./tables/cp936.json":20,"./tables/cp949.json":21,"./tables/cp950.json":22,"./tables/eucjp.json":23,"./tables/gb18030-ranges.json":24,"./tables/gbk-added.json":25,"./tables/shiftjis.json":26}],14:[function(require,module,exports){
+},{"./tables/big5-added.json":23,"./tables/cp936.json":24,"./tables/cp949.json":25,"./tables/cp950.json":26,"./tables/eucjp.json":27,"./tables/gb18030-ranges.json":28,"./tables/gbk-added.json":29,"./tables/shiftjis.json":30}],18:[function(require,module,exports){
 "use strict"
 
 // Update this array if you add/rename/remove files in this directory.
@@ -4316,7 +4449,7 @@ for (var i = 0; i < modules.length; i++) {
             exports[enc] = module[enc];
 }
 
-},{"./dbcs-codec":12,"./dbcs-data":13,"./internal":15,"./sbcs-codec":16,"./sbcs-data":18,"./sbcs-data-generated":17,"./utf16":27,"./utf7":28}],15:[function(require,module,exports){
+},{"./dbcs-codec":16,"./dbcs-data":17,"./internal":19,"./sbcs-codec":20,"./sbcs-data":22,"./sbcs-data-generated":21,"./utf16":31,"./utf7":32}],19:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -4507,7 +4640,7 @@ InternalDecoderCesu8.prototype.end = function() {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7,"string_decoder":83}],16:[function(require,module,exports){
+},{"buffer":7,"string_decoder":87}],20:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -4583,7 +4716,7 @@ SBCSDecoder.prototype.end = function() {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7}],17:[function(require,module,exports){
+},{"buffer":7}],21:[function(require,module,exports){
 "use strict"
 
 // Generated data for sbcs codec. Don't edit manually. Regenerate using generation/gen-sbcs.js script.
@@ -5035,7 +5168,7 @@ module.exports = {
     "chars": "���������������������������������กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู����฿เแโใไๅๆ็่้๊๋์ํ๎๏๐๑๒๓๔๕๖๗๘๙๚๛����"
   }
 }
-},{}],18:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict"
 
 // Manually added data to be used by sbcs codec in addition to generated one.
@@ -5206,7 +5339,7 @@ module.exports = {
 };
 
 
-},{}],19:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports=[
 ["8740","䏰䰲䘃䖦䕸𧉧䵷䖳𧲱䳢𧳅㮕䜶䝄䱇䱀𤊿𣘗𧍒𦺋𧃒䱗𪍑䝏䗚䲅𧱬䴇䪤䚡𦬣爥𥩔𡩣𣸆𣽡晍囻"],
 ["8767","綕夝𨮹㷴霴𧯯寛𡵞媤㘥𩺰嫑宷峼杮薓𩥅瑡璝㡵𡵓𣚞𦀡㻬"],
@@ -5330,7 +5463,7 @@ module.exports=[
 ["fea1","𤅟𤩹𨮏孆𨰃𡢞瓈𡦈甎瓩甞𨻙𡩋寗𨺬鎅畍畊畧畮𤾂㼄𤴓疎瑝疞疴瘂瘬癑癏癯癶𦏵皐臯㟸𦤑𦤎皡皥皷盌𦾟葢𥂝𥅽𡸜眞眦着撯𥈠睘𣊬瞯𨥤𨥨𡛁矴砉𡍶𤨒棊碯磇磓隥礮𥗠磗礴碱𧘌辸袄𨬫𦂃𢘜禆褀椂禀𥡗禝𧬹礼禩渪𧄦㺨秆𩄍秔"]
 ]
 
-},{}],20:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127,"€"],
 ["8140","丂丄丅丆丏丒丗丟丠両丣並丩丮丯丱丳丵丷丼乀乁乂乄乆乊乑乕乗乚乛乢乣乤乥乧乨乪",5,"乲乴",9,"乿",6,"亇亊"],
@@ -5596,7 +5729,7 @@ module.exports=[
 ["fe40","兀嗀﨎﨏﨑﨓﨔礼﨟蘒﨡﨣﨤﨧﨨﨩"]
 ]
 
-},{}],21:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127],
 ["8141","갂갃갅갆갋",4,"갘갞갟갡갢갣갥",6,"갮갲갳갴"],
@@ -5871,7 +6004,7 @@ module.exports=[
 ["fda1","爻肴酵驍侯候厚后吼喉嗅帿後朽煦珝逅勛勳塤壎焄熏燻薰訓暈薨喧暄煊萱卉喙毁彙徽揮暉煇諱輝麾休携烋畦虧恤譎鷸兇凶匈洶胸黑昕欣炘痕吃屹紇訖欠欽歆吸恰洽翕興僖凞喜噫囍姬嬉希憙憘戱晞曦熙熹熺犧禧稀羲詰"]
 ]
 
-},{}],22:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127],
 ["a140","　，、。．‧；：？！︰…‥﹐﹑﹒·﹔﹕﹖﹗｜–︱—︳╴︴﹏（）︵︶｛｝︷︸〔〕︹︺【】︻︼《》︽︾〈〉︿﹀「」﹁﹂『』﹃﹄﹙﹚"],
@@ -6050,7 +6183,7 @@ module.exports=[
 ["f9a1","龤灨灥糷虪蠾蠽蠿讞貜躩軉靋顳顴飌饡馫驤驦驧鬤鸕鸗齈戇欞爧虌躨钂钀钁驩驨鬮鸙爩虋讟钃鱹麷癵驫鱺鸝灩灪麤齾齉龘碁銹裏墻恒粧嫺╔╦╗╠╬╣╚╩╝╒╤╕╞╪╡╘╧╛╓╥╖╟╫╢╙╨╜║═╭╮╰╯▓"]
 ]
 
-},{}],23:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127],
 ["8ea1","｡",62],
@@ -6234,9 +6367,9 @@ module.exports=[
 ["8feda1","黸黿鼂鼃鼉鼏鼐鼑鼒鼔鼖鼗鼙鼚鼛鼟鼢鼦鼪鼫鼯鼱鼲鼴鼷鼹鼺鼼鼽鼿齁齃",4,"齓齕齖齗齘齚齝齞齨齩齭",4,"齳齵齺齽龏龐龑龒龔龖龗龞龡龢龣龥"]
 ]
 
-},{}],24:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports={"uChars":[128,165,169,178,184,216,226,235,238,244,248,251,253,258,276,284,300,325,329,334,364,463,465,467,469,471,473,475,477,506,594,610,712,716,730,930,938,962,970,1026,1104,1106,8209,8215,8218,8222,8231,8241,8244,8246,8252,8365,8452,8454,8458,8471,8482,8556,8570,8596,8602,8713,8720,8722,8726,8731,8737,8740,8742,8748,8751,8760,8766,8777,8781,8787,8802,8808,8816,8854,8858,8870,8896,8979,9322,9372,9548,9588,9616,9622,9634,9652,9662,9672,9676,9680,9702,9735,9738,9793,9795,11906,11909,11913,11917,11928,11944,11947,11951,11956,11960,11964,11979,12284,12292,12312,12319,12330,12351,12436,12447,12535,12543,12586,12842,12850,12964,13200,13215,13218,13253,13263,13267,13270,13384,13428,13727,13839,13851,14617,14703,14801,14816,14964,15183,15471,15585,16471,16736,17208,17325,17330,17374,17623,17997,18018,18212,18218,18301,18318,18760,18811,18814,18820,18823,18844,18848,18872,19576,19620,19738,19887,40870,59244,59336,59367,59413,59417,59423,59431,59437,59443,59452,59460,59478,59493,63789,63866,63894,63976,63986,64016,64018,64021,64025,64034,64037,64042,65074,65093,65107,65112,65127,65132,65375,65510,65536],"gbChars":[0,36,38,45,50,81,89,95,96,100,103,104,105,109,126,133,148,172,175,179,208,306,307,308,309,310,311,312,313,341,428,443,544,545,558,741,742,749,750,805,819,820,7922,7924,7925,7927,7934,7943,7944,7945,7950,8062,8148,8149,8152,8164,8174,8236,8240,8262,8264,8374,8380,8381,8384,8388,8390,8392,8393,8394,8396,8401,8406,8416,8419,8424,8437,8439,8445,8482,8485,8496,8521,8603,8936,8946,9046,9050,9063,9066,9076,9092,9100,9108,9111,9113,9131,9162,9164,9218,9219,11329,11331,11334,11336,11346,11361,11363,11366,11370,11372,11375,11389,11682,11686,11687,11692,11694,11714,11716,11723,11725,11730,11736,11982,11989,12102,12336,12348,12350,12384,12393,12395,12397,12510,12553,12851,12962,12973,13738,13823,13919,13933,14080,14298,14585,14698,15583,15847,16318,16434,16438,16481,16729,17102,17122,17315,17320,17402,17418,17859,17909,17911,17915,17916,17936,17939,17961,18664,18703,18814,18962,19043,33469,33470,33471,33484,33485,33490,33497,33501,33505,33513,33520,33536,33550,37845,37921,37948,38029,38038,38064,38065,38066,38069,38075,38076,38078,39108,39109,39113,39114,39115,39116,39265,39394,189000]}
-},{}],25:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports=[
 ["a140","",62],
 ["a180","",32],
@@ -6293,7 +6426,7 @@ module.exports=[
 ["fe80","䜣䜩䝼䞍⻊䥇䥺䥽䦂䦃䦅䦆䦟䦛䦷䦶䲣䲟䲠䲡䱷䲢䴓",6,"䶮",93]
 ]
 
-},{}],26:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",128],
 ["a1","｡",62],
@@ -6420,7 +6553,7 @@ module.exports=[
 ["fc40","髜魵魲鮏鮱鮻鰀鵰鵫鶴鸙黑"]
 ]
 
-},{}],27:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -6598,7 +6731,7 @@ function detectEncoding(buf, defaultEncoding) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7}],28:[function(require,module,exports){
+},{"buffer":7}],32:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -6891,7 +7024,7 @@ Utf7IMAPDecoder.prototype.end = function() {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7}],29:[function(require,module,exports){
+},{"buffer":7}],33:[function(require,module,exports){
 "use strict"
 
 var BOMChar = '\uFEFF';
@@ -6945,7 +7078,7 @@ StripBOMWrapper.prototype.end = function() {
 }
 
 
-},{}],30:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -7163,7 +7296,7 @@ module.exports = function (iconv) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7,"stream":82}],31:[function(require,module,exports){
+},{"buffer":7,"stream":86}],35:[function(require,module,exports){
 (function (process,Buffer){
 "use strict"
 
@@ -7308,7 +7441,7 @@ if (nodeVer) {
 
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"../encodings":14,"./bom-handling":29,"./extend-node":30,"./streams":32,"_process":45,"buffer":7}],32:[function(require,module,exports){
+},{"../encodings":18,"./bom-handling":33,"./extend-node":34,"./streams":36,"_process":49,"buffer":7}],36:[function(require,module,exports){
 (function (Buffer){
 "use strict"
 
@@ -7432,7 +7565,7 @@ IconvLiteDecoderStream.prototype.collect = function(cb) {
 
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7,"stream":82}],33:[function(require,module,exports){
+},{"buffer":7,"stream":86}],37:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -7518,7 +7651,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],34:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -7543,7 +7676,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],35:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -7566,21 +7699,21 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],36:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],37:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 'use strict';
 
 module.exports = function(str) {
   return window.atob(str);
 };
 
-},{}],38:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 'use strict';
 
 var interceptor = require('rest/interceptor');
@@ -7612,7 +7745,7 @@ var callbackify = interceptor({
 
 module.exports = callbackify;
 
-},{"rest/interceptor":62}],39:[function(require,module,exports){
+},{"rest/interceptor":66}],43:[function(require,module,exports){
 'use strict';
 
 var rest = require('rest');
@@ -7631,7 +7764,7 @@ module.exports = function(config) {
     .wrap(callbackify);
 };
 
-},{"./callbackify":38,"rest":58,"rest/interceptor/defaultRequest":63,"rest/interceptor/errorCode":64,"rest/interceptor/mime":65,"rest/interceptor/pathPrefix":66,"rest/interceptor/template":67}],40:[function(require,module,exports){
+},{"./callbackify":42,"rest":62,"rest/interceptor/defaultRequest":67,"rest/interceptor/errorCode":68,"rest/interceptor/mime":69,"rest/interceptor/pathPrefix":70,"rest/interceptor/template":71}],44:[function(require,module,exports){
 // We keep all of the constants that declare endpoints in one
 // place, so that we could concievably update this for API layout
 // revisions.
@@ -7654,7 +7787,7 @@ module.exports.API_TILESTATS_LAYER = '/tilestats/v1/{owner}/{tileset}/{layer}';
 module.exports.API_TILESTATS_ATTRIBUTE = '/tilestats/v1/{owner}/{tileset}/{layer}/{attribute}';
 module.exports.API_STATIC = '/v4/{mapid}{+overlay}/{+xyz}/{width}x{height}{+retina}{.format}';
 
-},{}],41:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -7695,7 +7828,7 @@ function getUser(token) {
 module.exports = getUser;
 
 }).call(this,require('_process'))
-},{"_process":45,"atob":37}],42:[function(require,module,exports){
+},{"_process":49,"atob":41}],46:[function(require,module,exports){
 'use strict';
 
 var assert = require('assert');
@@ -7753,7 +7886,7 @@ function makeService(name) {
 
 module.exports = makeService;
 
-},{"./client":39,"./constants":40,"./get_user":41,"assert":3}],43:[function(require,module,exports){
+},{"./client":43,"./constants":44,"./get_user":45,"assert":3}],47:[function(require,module,exports){
 'use strict';
 
 var assert = require('assert'),
@@ -8316,7 +8449,7 @@ Datasets.prototype.bulkFeatureUpdate = function(update, dataset, callback) {
   });
 };
 
-},{"../constants":40,"../make_service":42,"assert":3,"geojsonhint/object":10,"hat":11}],44:[function(require,module,exports){
+},{"../constants":44,"../make_service":46,"assert":3,"geojsonhint/object":14,"hat":15}],48:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -8363,7 +8496,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":45}],45:[function(require,module,exports){
+},{"_process":49}],49:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -8545,10 +8678,10 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],46:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":47}],47:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":51}],51:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -8624,7 +8757,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":49,"./_stream_writable":51,"core-util-is":8,"inherits":34,"process-nextick-args":44}],48:[function(require,module,exports){
+},{"./_stream_readable":53,"./_stream_writable":55,"core-util-is":8,"inherits":38,"process-nextick-args":48}],52:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -8651,7 +8784,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":50,"core-util-is":8,"inherits":34}],49:[function(require,module,exports){
+},{"./_stream_transform":54,"core-util-is":8,"inherits":38}],53:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -9595,7 +9728,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":47,"./internal/streams/BufferList":52,"_process":45,"buffer":7,"buffer-shims":6,"core-util-is":8,"events":9,"inherits":34,"isarray":36,"process-nextick-args":44,"string_decoder/":83,"util":5}],50:[function(require,module,exports){
+},{"./_stream_duplex":51,"./internal/streams/BufferList":56,"_process":49,"buffer":7,"buffer-shims":6,"core-util-is":8,"events":9,"inherits":38,"isarray":40,"process-nextick-args":48,"string_decoder/":87,"util":5}],54:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -9778,7 +9911,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":47,"core-util-is":8,"inherits":34}],51:[function(require,module,exports){
+},{"./_stream_duplex":51,"core-util-is":8,"inherits":38}],55:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -10335,7 +10468,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":47,"_process":45,"buffer":7,"buffer-shims":6,"core-util-is":8,"events":9,"inherits":34,"process-nextick-args":44,"util-deprecate":85}],52:[function(require,module,exports){
+},{"./_stream_duplex":51,"_process":49,"buffer":7,"buffer-shims":6,"core-util-is":8,"events":9,"inherits":38,"process-nextick-args":48,"util-deprecate":89}],56:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -10400,10 +10533,10 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":7,"buffer-shims":6}],53:[function(require,module,exports){
+},{"buffer":7,"buffer-shims":6}],57:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":48}],54:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":52}],58:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -10423,13 +10556,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":47,"./lib/_stream_passthrough.js":48,"./lib/_stream_readable.js":49,"./lib/_stream_transform.js":50,"./lib/_stream_writable.js":51,"_process":45}],55:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":51,"./lib/_stream_passthrough.js":52,"./lib/_stream_readable.js":53,"./lib/_stream_transform.js":54,"./lib/_stream_writable.js":55,"_process":49}],59:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":50}],56:[function(require,module,exports){
+},{"./lib/_stream_transform.js":54}],60:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":51}],57:[function(require,module,exports){
+},{"./lib/_stream_writable.js":55}],61:[function(require,module,exports){
 /*
  * Copyright 2012-2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -10660,7 +10793,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"./util/mixin":77}],58:[function(require,module,exports){
+},{"./util/mixin":81}],62:[function(require,module,exports){
 /*
  * Copyright 2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -10687,7 +10820,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"./client/default":60,"./client/xhr":61}],59:[function(require,module,exports){
+},{"./client/default":64,"./client/xhr":65}],63:[function(require,module,exports){
 /*
  * Copyright 2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -10753,7 +10886,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],60:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 /*
  * Copyright 2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -10879,7 +11012,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../client":59}],61:[function(require,module,exports){
+},{"../client":63}],65:[function(require,module,exports){
 /*
  * Copyright 2012-2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11055,7 +11188,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../UrlBuilder":57,"../client":59,"../util/normalizeHeaderName":78,"../util/responsePromise":79,"when":106}],62:[function(require,module,exports){
+},{"../UrlBuilder":61,"../client":63,"../util/normalizeHeaderName":82,"../util/responsePromise":83,"when":110}],66:[function(require,module,exports){
 /*
  * Copyright 2012-2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11222,7 +11355,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"./client":59,"./client/default":60,"./util/mixin":77,"./util/responsePromise":79,"when":106}],63:[function(require,module,exports){
+},{"./client":63,"./client/default":64,"./util/mixin":81,"./util/responsePromise":83,"when":110}],67:[function(require,module,exports){
 /*
  * Copyright 2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11303,7 +11436,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../interceptor":62,"../util/mixin":77}],64:[function(require,module,exports){
+},{"../interceptor":66,"../util/mixin":81}],68:[function(require,module,exports){
 /*
  * Copyright 2012-2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11352,7 +11485,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../interceptor":62,"when":106}],65:[function(require,module,exports){
+},{"../interceptor":66,"when":110}],69:[function(require,module,exports){
 /*
  * Copyright 2012-2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11464,7 +11597,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../interceptor":62,"../mime":68,"../mime/registry":69,"when":106}],66:[function(require,module,exports){
+},{"../interceptor":66,"../mime":72,"../mime/registry":73,"when":110}],70:[function(require,module,exports){
 /*
  * Copyright 2012-2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11525,7 +11658,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../UrlBuilder":57,"../interceptor":62}],67:[function(require,module,exports){
+},{"../UrlBuilder":61,"../interceptor":66}],71:[function(require,module,exports){
 /*
  * Copyright 2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11583,7 +11716,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../interceptor":62,"../util/mixin":77,"../util/uriTemplate":81}],68:[function(require,module,exports){
+},{"../interceptor":66,"../util/mixin":81,"../util/uriTemplate":85}],72:[function(require,module,exports){
 /*
 * Copyright 2014 the original author or authors
 * @license MIT, see LICENSE.txt for details
@@ -11638,7 +11771,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],69:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 /*
  * Copyright 2012-2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11755,7 +11888,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../mime":68,"./type/application/hal":70,"./type/application/json":71,"./type/application/x-www-form-urlencoded":72,"./type/multipart/form-data":73,"./type/text/plain":74,"when":106}],70:[function(require,module,exports){
+},{"../mime":72,"./type/application/hal":74,"./type/application/json":75,"./type/application/x-www-form-urlencoded":76,"./type/multipart/form-data":77,"./type/text/plain":78,"when":110}],74:[function(require,module,exports){
 /*
  * Copyright 2013-2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11896,7 +12029,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"../../../interceptor/pathPrefix":66,"../../../interceptor/template":67,"../../../util/find":75,"../../../util/lazyPromise":76,"../../../util/responsePromise":79,"when":106}],71:[function(require,module,exports){
+},{"../../../interceptor/pathPrefix":70,"../../../interceptor/template":71,"../../../util/find":79,"../../../util/lazyPromise":80,"../../../util/responsePromise":83,"when":110}],75:[function(require,module,exports){
 /*
  * Copyright 2012-2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -11945,7 +12078,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],72:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 /*
  * Copyright 2012 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12037,7 +12170,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],73:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 /*
  * Copyright 2014 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12112,7 +12245,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],74:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 /*
  * Copyright 2012 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12143,7 +12276,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],75:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 /*
  * Copyright 2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12186,7 +12319,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],76:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 /*
  * Copyright 2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12243,7 +12376,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"when":106}],77:[function(require,module,exports){
+},{"when":110}],81:[function(require,module,exports){
 /*
  * Copyright 2012-2013 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12293,7 +12426,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],78:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 /*
  * Copyright 2012 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12333,7 +12466,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],79:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /*
  * Copyright 2014-2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12475,7 +12608,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"./normalizeHeaderName":78,"when":106}],80:[function(require,module,exports){
+},{"./normalizeHeaderName":82,"when":110}],84:[function(require,module,exports){
 /*
  * Copyright 2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12657,7 +12790,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{}],81:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 /*
  * Copyright 2015 the original author or authors
  * @license MIT, see LICENSE.txt for details
@@ -12831,7 +12964,7 @@ module.exports = require("./lib/_stream_writable.js")
 	// Boilerplate for AMD and Node
 ));
 
-},{"./uriEncoder":80}],82:[function(require,module,exports){
+},{"./uriEncoder":84}],86:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12960,7 +13093,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":9,"inherits":34,"readable-stream/duplex.js":46,"readable-stream/passthrough.js":53,"readable-stream/readable.js":54,"readable-stream/transform.js":55,"readable-stream/writable.js":56}],83:[function(require,module,exports){
+},{"events":9,"inherits":38,"readable-stream/duplex.js":50,"readable-stream/passthrough.js":57,"readable-stream/readable.js":58,"readable-stream/transform.js":59,"readable-stream/writable.js":60}],87:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -13183,7 +13316,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":7}],84:[function(require,module,exports){
+},{"buffer":7}],88:[function(require,module,exports){
 (function (Buffer){
 /**!
  * urlencode - lib/urlencode.js
@@ -13414,7 +13547,7 @@ module.exports.parse = parse;
 module.exports.stringify = stringify;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":7,"iconv-lite":31}],85:[function(require,module,exports){
+},{"buffer":7,"iconv-lite":35}],89:[function(require,module,exports){
 (function (global){
 
 /**
@@ -13485,16 +13618,16 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],86:[function(require,module,exports){
-arguments[4][34][0].apply(exports,arguments)
-},{"dup":34}],87:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
+arguments[4][38][0].apply(exports,arguments)
+},{"dup":38}],91:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],88:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -14084,7 +14217,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":87,"_process":45,"inherits":86}],89:[function(require,module,exports){
+},{"./support/isBuffer":91,"_process":49,"inherits":90}],93:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14103,7 +14236,7 @@ define(function (require) {
 });
 })(typeof define === 'function' && define.amd ? define : function (factory) { module.exports = factory(require); });
 
-},{"./Scheduler":90,"./env":102,"./makePromise":104}],90:[function(require,module,exports){
+},{"./Scheduler":94,"./env":106,"./makePromise":108}],94:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14185,7 +14318,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],91:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14213,7 +14346,7 @@ define(function() {
 	return TimeoutError;
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
-},{}],92:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14270,7 +14403,7 @@ define(function() {
 
 
 
-},{}],93:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14561,7 +14694,7 @@ define(function(require) {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(require); }));
 
-},{"../apply":92,"../state":105}],94:[function(require,module,exports){
+},{"../apply":96,"../state":109}],98:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14723,7 +14856,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],95:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14752,7 +14885,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],96:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14774,7 +14907,7 @@ define(function(require) {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(require); }));
 
-},{"../state":105}],97:[function(require,module,exports){
+},{"../state":109}],101:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14841,7 +14974,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],98:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14867,7 +15000,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],99:[function(require,module,exports){
+},{}],103:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -14947,7 +15080,7 @@ define(function(require) {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(require); }));
 
-},{"../TimeoutError":91,"../env":102}],100:[function(require,module,exports){
+},{"../TimeoutError":95,"../env":106}],104:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -15035,7 +15168,7 @@ define(function(require) {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(require); }));
 
-},{"../env":102,"../format":103}],101:[function(require,module,exports){
+},{"../env":106,"../format":107}],105:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -15075,7 +15208,7 @@ define(function() {
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
 
-},{}],102:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
 (function (process){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
@@ -15152,7 +15285,7 @@ define(function(require) {
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(require); }));
 
 }).call(this,require('_process'))
-},{"_process":45}],103:[function(require,module,exports){
+},{"_process":49}],107:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -15210,7 +15343,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],104:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 (function (process){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
@@ -16141,7 +16274,7 @@ define(function() {
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
 }).call(this,require('_process'))
-},{"_process":45}],105:[function(require,module,exports){
+},{"_process":49}],109:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 /** @author Brian Cavalier */
 /** @author John Hann */
@@ -16178,7 +16311,7 @@ define(function() {
 });
 }(typeof define === 'function' && define.amd ? define : function(factory) { module.exports = factory(); }));
 
-},{}],106:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 /** @license MIT License (c) copyright 2010-2014 original author or authors */
 
 /**
@@ -16408,7 +16541,7 @@ define(function (require) {
 });
 })(typeof define === 'function' && define.amd ? define : function (factory) { module.exports = factory(require); });
 
-},{"./lib/Promise":89,"./lib/TimeoutError":91,"./lib/apply":92,"./lib/decorators/array":93,"./lib/decorators/flow":94,"./lib/decorators/fold":95,"./lib/decorators/inspect":96,"./lib/decorators/iterate":97,"./lib/decorators/progress":98,"./lib/decorators/timed":99,"./lib/decorators/unhandledRejection":100,"./lib/decorators/with":101}],107:[function(require,module,exports){
+},{"./lib/Promise":93,"./lib/TimeoutError":95,"./lib/apply":96,"./lib/decorators/array":97,"./lib/decorators/flow":98,"./lib/decorators/fold":99,"./lib/decorators/inspect":100,"./lib/decorators/iterate":101,"./lib/decorators/progress":102,"./lib/decorators/timed":103,"./lib/decorators/unhandledRejection":104,"./lib/decorators/with":105}],111:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
