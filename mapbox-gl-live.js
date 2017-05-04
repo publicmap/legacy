@@ -1,6 +1,9 @@
 // mapbox-gl-live: Live tools to add interactivity to your Mapbox GL map
 //  inspector: Explore the map data by inspecting features with the mouse
 
+import mapboxgl from 'mapbox-gl';
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
+
 // Datests setup
 // 1. Create a new access token with the `datasets:read` and `datasets:write` scope. Request for a beta access if you do not see this option https://www.mapbox.com/api-documentation/#datasets
 var mapboxAccessDatasetToken = 'sk.eyJ1IjoidGhlcGxhbmVtYWQiLCJhIjoiY2l3a2Jkazl1MDAwbjJvbXN1MXZzNXJwNyJ9.kNJ9l7CjEfQU4TfWnGpUFw';
@@ -11,11 +14,9 @@ var DATASETS_BASE = 'https://api.mapbox.com/datasets/v1/theplanemad/' + dataset 
 
 var xtend = require('xtend');
 var urlencode = require('urlencode');
-var MapboxClient = require('mapbox/lib/services/datasets');
 var geojsonCoords = require('geojson-coords');
-var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 
-defaultOptions = {
+var defaultOptions = {
     layers: [
         'building',
         'road-label-large',
@@ -237,10 +238,16 @@ var Live = {
 
     // Init map controls
     initmap: function addDefaultControls(map, options) {
-        map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
-        map.addControl(new mapboxgl.ScaleControl());
+        map.addControl(new MapboxGeocoder({
+          accessToken: mapboxgl.accessToken
+        }));
         map.addControl(new mapboxgl.NavigationControl());
-        map.addControl(new mapboxgl.GeolocateControl({position: 'bottom-right'}));
+        map.addControl(new mapboxgl.ScaleControl());
+        map.addControl(new mapboxgl.GeolocateControl({
+          positionOptions: {
+              enableHighAccuracy: true
+          }
+        }));
     }
 }
 
@@ -261,16 +268,15 @@ function populateTable(feature) {
 
     // Show nominatim link if feature has a name
     if (feature.properties.name != undefined)
-        popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
+        popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "' target='_blank'>OSM Search</a><br>";
 
     popupHTML += "<table style='table-layout:fixed'>";
 
-    for (property in feature.properties) {
-        if (property == 'distance') {
-            var distance = feature.properties[property];
-            popupHTML += "<tr bgcolor = #d5e8ce><td>" + property + "</td><td>" + parseFloat(distance.toFixed(3)) + "</td></tr>";
+    for (let [key, value] of Object.entries(feature.properties)) {
+        if (key == 'distance') {
+            popupHTML += "<tr bgcolor = #d5e8ce><td>" + key + "</td><td>" + parseFloat(value.toFixed(3)) + "</td></tr>";
         } else {
-            popupHTML += "<tr><td>" + property + "</td><td>" + feature.properties[property] + "</td></tr>";
+            popupHTML += "<tr><td>" + key + "</td><td>" + value + "</td></tr>";
         }
     }
     popupHTML += "</table>";
@@ -320,4 +326,3 @@ function pixelPointToSquare(point, width) {
 
 // Export module
 module.exports = Live;
-rts = Live;
