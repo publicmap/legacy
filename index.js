@@ -1,10 +1,11 @@
 'use strict';
 
-/* global App */
-var mapboxglLive = require('./mapbox-gl-live');
+import mapboxgl from 'mapbox-gl';
+import Live from './mapbox-gl-live';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiY2l3ZmNjNXVzMDAzZzJ0cDV6b2lkOG9odSJ9.eep6sUoBS0eMN4thZUWpyQ';
-var map = new mapboxgl.Map({
+
+const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/planemad/cirnjr9do000pgxma53mkgdw0',
     zoom: 11.6,
@@ -14,15 +15,13 @@ var map = new mapboxgl.Map({
     hash: true
 });
 
-mapboxglLive.initmap(map);
+Live.initmap(map);
 
-mapboxglLive.addLayerInput(map);
+// Live.addLayerInput(map);
 
 map.on('load', function() {
-
     // Inspect layer on click and show popup information
-    mapboxglLive.inspector(map);
-
+    Live.inspector(map);
 });
 
 // the 'building' layer in the mapbox-streets vector source contains building-height
