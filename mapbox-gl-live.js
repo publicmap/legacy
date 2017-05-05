@@ -2,6 +2,7 @@
 //  inspector: Explore the map data by inspecting features with the mouse
 
 import mapboxgl from 'mapbox-gl';
+import MapboxDirections from '@mapbox/mapbox-gl-directions';
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
 
 // Datests setup
@@ -238,6 +239,10 @@ var Live = {
 
     // Init map controls
     initmap: function addDefaultControls(map, options) {
+        map.addControl(new MapboxDirections({
+          accessToken: mapboxgl.accessToken,
+          interactive: false
+        }), 'top-left');
         map.addControl(new MapboxGeocoder({
           accessToken: mapboxgl.accessToken
         }));
