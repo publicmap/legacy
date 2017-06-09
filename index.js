@@ -22,33 +22,10 @@ map.on('load', function() {
 
   // Inspect layer on click and show popup information
   mapboxglTools.inspector(map);
+  mapboxglTools.addLayer(map, {'id': '3d-buildings'});
 
 });
 
 // the 'building' layer in the mapbox-streets vector source contains building-height
 // data from OpenStreetMap.
-map.on('load', function() {
-
-  map.addLayer({
-    'id': '3d-buildings',
-    'source': 'composite',
-    'source-layer': 'building',
-    'filter': [
-      '==', 'extrude', 'true'
-    ],
-    'type': 'fill-extrusion',
-    'minzoom': 10,
-    'paint': {
-      'fill-extrusion-color': '#eee',
-      'fill-extrusion-height': {
-        'type': 'identity',
-        'property': 'height'
-      },
-      'fill-extrusion-base': {
-        'type': 'identity',
-        'property': 'min_height'
-      },
-      'fill-extrusion-opacity': .4
-    }
-  }, 'housenum-label');
-});
+map.on('load', function() {});
