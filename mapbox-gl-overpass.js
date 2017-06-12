@@ -14,7 +14,7 @@ function MapboxOverpass(options) {
   }
 
   this.options = Object.assign({
-    overpassUrl: 'http://overpass-api.de/api/interpreter'
+    overpassUrl: 'https://overpass-api.de/api/interpreter'
   }, options);
 
   this.render = this.render.bind(this);
