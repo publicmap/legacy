@@ -8,18 +8,19 @@
 var queryOverpass = require('query-overpass');
 var stripcomments = require('strip-comments');
 
-function MapboxOverpass(options) {
-  if (!(this instanceof MapboxOverpass)) {
-    throw new Error('MapboxOverpass needs to be called with the new keyword');
-  }
-
-  this.options = Object.assign({
-    overpassUrl: 'http://overpass-api.de/api/interpreter'
-  }, options);
-
-  this.render = this.render.bind(this);
-
-}
+// For future: Architect the plugin like https://github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
+// function MapboxOverpass(options) {
+//   if (!(this instanceof MapboxOverpass)) {
+//     throw new Error('MapboxOverpass needs to be called with the new keyword');
+//   }
+//
+//   this.options = Object.assign({
+//     overpassUrl: 'http://overpass-api.de/api/interpreter'
+//   }, options);
+//
+//   this.render = this.render.bind(this);
+//
+// }
 
 var Overpass = {
 
