@@ -6,29 +6,43 @@
 */
 
 var queryOverpass = require('query-overpass');
-var stripcomments = require('strip-comments');
+// var stripcomments = require('strip-comments');
 
-// TODO: Plugin architecture inspired by https://github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
+//  For future: Architect the plugin like https : github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
 // function MapboxOverpass(options) {
 //   if (!(this instanceof MapboxOverpass)) {
 //     throw new Error('MapboxOverpass needs to be called with the new keyword');
 //   }
 //
 //   this.options = Object.assign({
-//     overpassUrl: 'https://overpass-api.de/api/interpreter'
+//     enabled: false,
+//     showOverpassButton: true,
+//     overpassUrl: 'http://overpass-api.de/api/interpreter'
 //   }, options);
 //
 //   this.render = this.render.bind(this);
-//
+//   this.toggle = this.toggle.bind(this);
+//   this._hide = this._hide.bind(this);
+//   this._show = this._show.bind(this);
+//   this._toggle = new ToogleButton({show: this.options.showOverpassButton, onToggle: this.toggle.bind(this)});
 // }
+//
+// /**
+//  * Toggle visibility of overpass layer.
+//  */
+// MapboxOverpass.prototype.toggleTraffic = function() {
+//   this.options.showToggle = !this.options.showToggle;
+//   this.render();
+// };
 
+var inputQuery;
 var Overpass = {
 
   // Inspect map layers on mouse interactivity
   query: function(map, options) {
 
     // Add an input text box
-    $('.mapboxgl-ctrl-top-left').append('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
+    $('.mapboxgl-ctrl-bottom-left').prepend('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
 
     // Add a geojson source and style layers
     // Data layer
@@ -73,25 +87,34 @@ var Overpass = {
       }
     }, 'aeroway-taxiway');
 
-    // On pressing enter
+    // Update map on pressing enter
     $('#overpass').on('keypress', function(e) {
       if (e.which === 13) {
 
-        var query = $(this).val();
-        // Substitue {{bbox}} in query with map bounds
-        var bbox = map.getBounds();
-        query = query.replace(/{{bbox}}/g, [bbox._sw.lat, bbox._sw.lng, bbox._ne.lat, bbox._ne.lng].join());
-        // Strip comments from the query
-        // query = stripcomments(query);
-
-        queryOverpass(query, function(e, geojson) {
-          map.getSource('overpass').setData(geojson);
-        }, {'overpassUrl': 'https://overpass-api.de/api/interpreter'});
+        inputQuery = $(this).val();
+        updateMap(map);
 
       }
     });
 
+    // Update map on move
+    map.on('moveend', function(e) {
+      updateMap(map);
+    })
+
   }
+}
+
+// Render the overpass results
+function updateMap(map) {
+  var bbox = map.getBounds();
+  query = inputQuery.replace(/{{bbox}}/g, [bbox._sw.lat, bbox._sw.lng, bbox._ne.lat, bbox._ne.lng].join());
+
+  queryOverpass(query, function(e, geojson) {
+    console.log(geojson);
+    map.getSource('overpass').setData(geojson);
+
+  });
 }
 
 // Export module

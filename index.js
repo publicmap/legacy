@@ -1,6 +1,5 @@
 'use strict';
 
-/* global App */
 var mapboxglTools = require('./mapbox-gl-tools');
 var mapboxglOverpass = require('./mapbox-gl-overpass');
 
@@ -16,18 +15,30 @@ var map = new mapboxgl.Map({
 });
 
 // Initialize a Mapbox GL map using mapboxglTools
-mapboxglTools.initmap(map);
-
-// mapboxglTools.addLayerInput(map);
+mapboxglTools.initmap(map, {});
 
 map.on('load', function() {
 
   // Inspect layer on click and show popup information
-  mapboxglTools.inspector(map);
+  //mapboxglTools.inspector(map);
+
   // Add 3D buildings
   mapboxglTools.addLayer(map, {'id': '3d-buildings'});
 
   // Add a box to query Overpass
   mapboxglOverpass.query(map);
 
+  // mapboxglTools.addLayerInput(map);
+
+});
+
+// Switch a map style layer
+document.getElementById('select-map').addEventListener('change', function(e) {
+  var layerId;
+  if (e.target.value == 'default') {
+    layerId = 'planemad/cirnjr9do000pgxma53mkgdw0';
+  } else {
+    layerId = e.target.value;
+  }
+  map.setStyle('mapbox://styles/' + layerId);
 });

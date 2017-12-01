@@ -44,14 +44,14 @@ map.on('load', function() {
 var queryOverpass = require('query-overpass');
 var stripcomments = require('strip-comments');
 
-// TODO: Plugin architecture inspired by https://github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
+// For future: Architect the plugin like https://github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
 // function MapboxOverpass(options) {
 //   if (!(this instanceof MapboxOverpass)) {
 //     throw new Error('MapboxOverpass needs to be called with the new keyword');
 //   }
 //
 //   this.options = Object.assign({
-//     overpassUrl: 'https://overpass-api.de/api/interpreter'
+//     overpassUrl: 'http://overpass-api.de/api/interpreter'
 //   }, options);
 //
 //   this.render = this.render.bind(this);
@@ -122,7 +122,8 @@ var Overpass = {
 
         queryOverpass(query, function(e, geojson) {
           map.getSource('overpass').setData(geojson);
-        }, {'overpassUrl': 'https://overpass-api.de/api/interpreter'});
+
+        });
 
       }
     });

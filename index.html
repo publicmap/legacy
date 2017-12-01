@@ -2,38 +2,45 @@
 <html>
 
 <head>
-    <meta charset='utf-8' />
-    <title>Public Map</title>
-    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
-    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.0.1/mapbox-gl-geocoder.js'></script>
-    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.0.1/mapbox-gl-geocoder.css' type='text/css' />
-    <link href='https://www.mapbox.com/base/latest/base.css' rel='stylesheet' />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 100%;
-        }
-
-        .mapboxgl-popup-content {
-            max-width: 200px;
-            word-wrap: break-word;
-        }
-    </style>
+  <title>Public Map</title>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.42.2/mapbox-gl.js'></script>
+  <!-- Mapbox Assembly -->
+  <link href='https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.min.css' rel='stylesheet'>
+  <script async defer src='https://api.mapbox.com/mapbox-assembly/v0.19.0/assembly.js'></script>
+  <!-- Mapbox GL -->
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.42.2/mapbox-gl.css' rel='stylesheet' />
+  <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.1.1/mapbox-gl-geocoder.min.js'></script>
+  <link href='mapbox-gl-tools.css' rel='stylesheet' />
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
 </head>
 
 <body>
-<div id='map'></div>
+  <!-- Class names are from assembly.js for styling -->
+  <div class='viewport-full relative clip'>
+    <div class='viewport-twothirds viewport-full-ml relative'>
+      <div id='map' class='absolute top left right bottom'></div>
+    </div>
+    <div class='absolute top-ml left z1 w-full w300-ml py12-ml px12-ml'>
+      <div class='viewport-third h-auto-ml hmax-full bg-white round-ml shadow-darken5 scroll-auto'>
+        <div class='py12 px12 scroll-auto'>
+          <h2 class='txt-xl txt-bold mx6 my6'>Public Map</h2>
+          <p class='mx6'>Choose a map or <a href="https://github.com/publicmap/publicmap.github.io/">build one</a>.</p>
+          <h3 class='txt-m py6 txt-bold mx6'>Map</h3>
+          <div class='select-container'>
+            <select id='select-map' class='select'>
+                            <option value='default'>Public Map</option>
+                            <option value='planemad/cj8ul75i275p52rogvewe4xiu'>Water flow</option>
+                        </select>
+            <div class='select-arrow'></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <!-- App script -->
     <script src='bundle.js'></script>
 
 </body>
