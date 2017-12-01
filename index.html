@@ -19,12 +19,7 @@
             padding: 0;
         }
 
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 100%;
-        }
+        
 
         .mapboxgl-popup-content {
             max-width: 200px;
@@ -34,7 +29,44 @@
 </head>
 
 <body>
-<div id='map'></div>
+  <div class='viewport-full relative clip'>
+        <div class='viewport-twothirds viewport-full-ml relative'>
+            <div id='map' class='absolute top left right bottom'></div>
+        </div>
+        <div class='absolute top-ml left z1 w-full w300-ml py12-ml px12-ml'>
+            <div class='viewport-third h-auto-ml hmax-full bg-white round-ml shadow-darken5 scroll-auto'>
+                <div class='py12 px12 scroll-auto'>
+                    <h2 class='txt-l txt-bold mx6 my6'>Mapbox Satellite</h2>
+                    <h3 class='txt-m py6 txt-bold mx6'>Map</h3>
+                    <div class='select-container'>
+                        <select id='select-basemap' class='select'>
+                            <option value='planemad/cirnjr9do000pgxma53mkgdw0'>Public Map</option>
+                            <option value='planemad/cj8ul75i275p52rogvewe4xiu'>Water flow</option>
+                        </select>
+                        <div class='select-arrow'></div>
+                    </div>
+                    <br>
+                    <br>
+                    <h3 class='txt-m py6 txt-bold mx6'>Area of interest</h3>
+                    <div class='select-container'>
+                        <select id='select-location' class='select'>
+                            <option value="[33.4942, -111.9261]">Scottsdale, AZ
+                                <option value="[42.331, -83.045]">Detroit, MI</option>
+                                <option value="[37.775, -122.419]">San Francisco, CA</option>
+                                <option value="[42.5815, -83.6766]">Oakland County, MI</option>
+                        </select>
+                        <div class='select-arrow'></div>
+                    </div>
+                    <br>
+                    <br>
+                    <label  class='switch-container'>
+                        <input id='toggle-AOI' type='checkbox' />
+                        <div class='switch mr6'></div>
+                        Show area of interest polygon
+                    </label>
+                </div>
+            </div>
+        </div>
 
   <!-- App script -->
     <script src='bundle.js'></script>
