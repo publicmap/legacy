@@ -8,34 +8,33 @@
 var queryOverpass = require('query-overpass');
 // var stripcomments = require('strip-comments');
 
-// For future: Architect the plugin like https : github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
-function MapboxOverpass(options) {
-  if (!(this instanceof MapboxOverpass)) {
-    throw new Error('MapboxOverpass needs to be called with the new keyword');
-  }
-
-  this.options = Object.assign({
-    enabled: false,
-    showOverpassButton: true,
-    overpassUrl: 'http://overpass-api.de/api/interpreter'
-  }, options);
-
-  this.render = this.render.bind(this);
-  this.toggle = this.toggle.bind(this);
-  this._hide = this._hide.bind(this);
-  this._show = this._show.bind(this);
-  this._toggle = new ToogleButton({show: this.options.showOverpassButton, onToggle: this.toggle.bind(this)});
-}
-
-/**
- * Toggle visibility of overpass layer.
- */
-MapboxOverpass.prototype.toggleTraffic = function() {
-  this.options.showToggle = !this.options.showToggle;
-  this.render();
-};
-
+//  For future: Architect the plugin like https : github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
+// function MapboxOverpass(options) {
+//   if (!(this instanceof MapboxOverpass)) {
+//     throw new Error('MapboxOverpass needs to be called with the new keyword');
+//   }
 //
+//   this.options = Object.assign({
+//     enabled: false,
+//     showOverpassButton: true,
+//     overpassUrl: 'http://overpass-api.de/api/interpreter'
+//   }, options);
+//
+//   this.render = this.render.bind(this);
+//   this.toggle = this.toggle.bind(this);
+//   this._hide = this._hide.bind(this);
+//   this._show = this._show.bind(this);
+//   this._toggle = new ToogleButton({show: this.options.showOverpassButton, onToggle: this.toggle.bind(this)});
+// }
+//
+// /**
+//  * Toggle visibility of overpass layer.
+//  */
+// MapboxOverpass.prototype.toggleTraffic = function() {
+//   this.options.showToggle = !this.options.showToggle;
+//   this.render();
+// };
+
 var inputQuery;
 var Overpass = {
 
@@ -43,7 +42,7 @@ var Overpass = {
   query: function(map, options) {
 
     // Add an input text box
-    $('.mapboxgl-ctrl-top-left').append('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
+    $('.mapboxgl-ctrl-bottom-left').prepend('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
 
     // Add a geojson source and style layers
     // Data layer
