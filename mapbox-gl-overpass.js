@@ -99,8 +99,10 @@ var Overpass = {
 
     // Update map on move
     map.on('moveend', function(e) {
-      updateMap(map);
-    })
+      if (inputQuery) 
+        updateMap(map);
+      }
+    )
 
   }
 }
