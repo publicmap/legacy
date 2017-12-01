@@ -1,6 +1,9 @@
-//
-// mapbox-gl-tools: Handy tools to make your Mapbox GL map cool
-//
+/**
+ * Handy tools to make your Mapbox GL map cool
+ * This is a [Mapbox GL JS plugin](https://www.mapbox.com/blog/build-mapbox-gl-js-plugins/)
+ * @constructor
+ * @param {object} options - Options to configure the plugin.
+*/
 
 // SETUP
 // Datests setup
@@ -18,6 +21,8 @@ var urlencode = require('urlencode');
 var MapboxClient = require('mapbox/lib/services/datasets');
 var geojsonCoords = require('geojson-coords');
 var mapbox = new MapboxClient(mapboxAccessDatasetToken);
+const MapboxTraffic = require('@mapbox/mapbox-gl-traffic');
+const MapboxGeocoder = require('@mapbox/mapbox-gl-geocoder');
 
 defaultOptions = {
   on: 'click',
@@ -325,6 +330,7 @@ var Tools = {
         enableHighAccuracy: true
       }
     }));
+    map.addControl(new MapboxTraffic());
   }
 
 }
