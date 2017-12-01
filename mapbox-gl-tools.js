@@ -9,7 +9,7 @@
 var mapboxAccessDatasetToken = 'sk.eyJ1IjoidGhlcGxhbmVtYWQiLCJhIjoiY2l3a2Jkazl1MDAwbjJvbXN1MXZzNXJwNyJ9.kNJ9l7CjEfQU4TfWnGpUFw';
 
 // 2. Create a new Mapbox dataset and set the dataset location https://www.mapbox.com/blog/wildfire-datasets/
-var dataset = 'ciwkbb8dm00092ymsu2dt5bvw';
+var dataset = 'citdwsmsa007846o5n1ff2zs9';
 var DATASETS_BASE = 'https://api.mapbox.com/datasets/v1/theplanemad/' + dataset + '/';
 
 // DEPENDENCIES
@@ -20,15 +20,23 @@ var geojsonCoords = require('geojson-coords');
 var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 
 defaultOptions = {
-  layers: [
-    'building',
-    'road-label-large',
-    'road-label-medium',
-    'road-label-small',
-    'poi-scalerank4-l1',
-    'poi-scalerank4-l15'
-  ],
-  on: 'click'
+  on: 'click',
+  styles: {
+    default: {
+      url: "mapbox://styles/planemad/cirnjr9do000pgxma53mkgdw0",
+      inspectable: [
+        'building',
+        'road-label-large',
+        'road-label-medium',
+        'road-label-small',
+        'poi-scalerank4-l1',
+        'poi-scalerank4-l15'
+      ]
+    },
+    hybrid: {
+      url: "mapbox://styles/planemad/cip0m8hzf0003dhmh432q7g2k"
+    }
+  }
 }
 
 // API
@@ -46,7 +54,7 @@ var Tools = {
     map.on(options.on, function(e) {
 
       // Select the first feature from the list of features near the mouse
-      var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.layers});
+      var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.styles.default.inspectable});
 
       if (features.length > 0) {
         console.log(features[0]);
@@ -90,12 +98,46 @@ var Tools = {
 
   // Add a layer for user annotation on the map
   notes: function(map, options) {
+
+    options = defaultOptions || options;
+
+    map.setStyle(options.styles.hybrid.url);
+
     map.on('style.load', function(e) {
       init();
 
       function init() {
 
-        map.addSource('overlayDataSource', overlayDataSource);
+        map.addSource('overlayDataSource', {
+          type: 'geojson',
+          data: {
+            "type": "FeatureCollection",
+            "features": [
+              {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                  "type": "Point",
+                  "coordinates": [-76.53063297271729, 39.18174077994108]
+                }
+              }
+            ]
+          }
+        });
+        var overlayData = {
+          'id': 'overlayData',
+          'type': 'circle',
+          'source': 'overlayDataSource',
+          'interactive': true,
+          'layout': {
+            visibility: 'visible'
+          },
+          'paint': {
+            'circle-radius': 15,
+            'circle-color': 'blue'
+          }
+        };
+        overlayDataSource = map.getSource('overlayDataSource')
         map.addLayer(overlayData);
         getOverlayFeatures();
 
