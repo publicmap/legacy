@@ -320,7 +320,8 @@ var Tools = {
     });
   },
 
-  // Init map controls
+  // Init map controls and plugins
+  // https://www.mapbox.com/mapbox-gl-js/plugins/
   initmap: function(map, options) {
     map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
     map.addControl(new mapboxgl.ScaleControl());
@@ -351,9 +352,9 @@ function populateTable(feature) {
   var popupHTML = "<h3>" + feature.properties.name + "</h3>";
 
   // Show nominatim link if feature has a name
-  if (feature.properties.name != undefined)
+  if (feature.properties.name != undefined) 
     popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
-
+  
   popupHTML += "<table style='table-layout:fixed'>";
 
   for (property in feature.properties) {

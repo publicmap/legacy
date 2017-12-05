@@ -6,86 +6,229 @@
 */
 
 var queryOverpass = require('query-overpass');
-// var stripcomments = require('strip-comments');
+var stripcomments = require('strip-comments');
 
-//  For future: Architect the plugin like https : github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
-// function MapboxOverpass(options) {
-//   if (!(this instanceof MapboxOverpass)) {
-//     throw new Error('MapboxOverpass needs to be called with the new keyword');
-//   }
-//
-//   this.options = Object.assign({
-//     enabled: false,
-//     showOverpassButton: true,
-//     overpassUrl: 'http://overpass-api.de/api/interpreter'
-//   }, options);
-//
-//   this.render = this.render.bind(this);
-//   this.toggle = this.toggle.bind(this);
-//   this._hide = this._hide.bind(this);
-//   this._show = this._show.bind(this);
-//   this._toggle = new ToogleButton({show: this.options.showOverpassButton, onToggle: this.toggle.bind(this)});
-// }
-//
-// /**
-//  * Toggle visibility of overpass layer.
-//  */
-// MapboxOverpass.prototype.toggleTraffic = function() {
-//   this.options.showToggle = !this.options.showToggle;
-//   this.render();
-// };
+// Mapbox Overpass
+// based on github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
 
-var inputQuery;
-var Overpass = {
+function MapboxOverpass(options) {
+  if (!(this instanceof MapboxOverpass)) {
+    throw new Error('MapboxOverpass needs to be called with the new keyword');
+  }
 
-  // Inspect map layers on mouse interactivity
-  query: function(map, options) {
+  this.options = Object.assign({
+    enabled: false,
+    style: styleLayers,
+    showButton: true,
+    overpassUrl: 'https://overpass-api.de/api/interpreter'
+  }, options);
 
-    // Add an input text box
-    $('.mapboxgl-ctrl-bottom-left').prepend('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
+  this.toggle = this.toggle.bind(this);
+  this.render = this.render.bind(this);
+  this._hide = this._hide.bind(this);
+  this._show = this._show.bind(this);
+  this._hasSource = this._hasSource.bind(this);
+  this._toggle = new pluginButton({show: this.options.showButton, onToggle: this.toggle.bind(this)});
+}
 
-    // Add a geojson source and style layers
-    // Data layer
-    map.addSource('overpass', {
+MapboxOverpass.prototype.onAdd = function(map) {
+  this._map = map;
+  map.on('load', this.render);
+  return this._toggle.elem;
+};
+
+MapboxOverpass.prototype.onRemove = function() {
+  this._map.off('load', this.render);
+
+  var elem = this._toggle.elem;
+  elem.parentNode.removeChild(elem);
+  this._map = undefined;
+};
+
+/**
+ * Toggle the plugin
+ */
+MapboxOverpass.prototype.toggle = function() {
+  this.options.enabled = !this.options.enabled;
+  this.render();
+};
+
+MapboxOverpass.prototype.render = function() {
+
+  // On first run: Add the source and style layers if not already added
+  if (!this._hasSource()) {
+    this._map.addSource('overpass', {
       type: 'geojson',
       data: {
         "type": "FeatureCollection",
         "features": []
       }
     });
-    // Fill
-    map.addLayer({
-      'id': 'overpass fill',
-      'type': 'fill',
-      'source': 'overpass',
-      'paint': {
-        'fill-color': '#ff00ed',
-        'fill-opacity': 0.2
-      },
-      'filter': ["==", "$type", "Polygon"]
-    }, 'aeroway-taxiway');
-    // Lines
-    map.addLayer({
-      'id': 'overpass line',
-      'type': 'line',
-      'source': 'overpass',
-      'paint': {
-        'line-color': '#ff00ed',
-        'line-width': 20,
-        'line-opacity': 0.5
-      }
-    }, 'aeroway-taxiway');
-    // Points
-    map.addLayer({
-      'id': 'overpass points',
-      'type': 'circle',
-      'source': 'overpass',
-      'paint': {
-        'circle-color': '#ff00ed',
-        'circle-radius': 10,
-        'circle-opacity': 0.5
-      }
-    }, 'aeroway-taxiway');
+
+    // Compute where to insert the additional style layers
+    var roadLayers = this._map.getStyle().layers.filter(function(layer) {
+      return layer['source-layer'] === 'road';
+    });
+    var topRoadLayer = roadLayers[roadLayers.length - 1].id;
+
+    // Add the style layers
+    var style = this._map.getStyle();
+    var mapStyle = addStyleLayers(style, styleLayers, topRoadLayer);
+    this._map.setStyle(mapStyle);
+  }
+
+  if (this.options.enabled) {
+    this._show();
+    this._toggle.setMapIcon();
+  } else {
+    this._hide();
+    this._toggle.setPluginIcon();
+  }
+};
+
+// UI controls
+
+// Create a button element
+function button() {
+  var btn = document.createElement('button');
+  btn.className = 'mapboxgl-ctrl-icon mapboxgl-ctrl-overpass';
+  btn.type = 'button';
+  btn['aria-label'] = 'Inspect';
+  return btn;
+}
+
+// Create an input text box element
+function textInput() {
+  var ti = document.createElement('input');
+  ti.className = 'mapboxgl-ctrl overpass';
+  ti.type = 'text';
+  ti.placeholder = 'Overpass QL';
+  return ti;
+}
+
+// Plugin controls container
+function container(child, show) {
+  var container = document.createElement('div');
+  container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+  container.appendChild(child);
+  if (!show) {
+    container.style.display = 'none';
+  }
+  return container;
+}
+
+// Create the plugin control
+function pluginButton(options) {
+  options = Object.assign({
+    show: true,
+    onToggle: function() {}
+  }, options);
+
+  this._btn = button(); // Plugin toggle button
+  this._btn.onclick = options.onToggle;
+  this._ti = textInput(); // Plugin  text input
+  this._ti.onkeypress = () => {
+    //
+  }
+  this.elem = container(this._btn, options.show);
+}
+
+pluginButton.prototype.setPluginIcon = function() {
+  this._btn.className = 'mapboxgl-ctrl-icon mapboxgl-ctrl-overpass';
+};
+
+pluginButton.prototype.setMapIcon = function() {
+  this._btn.className = 'mapboxgl-ctrl-icon mapboxgl-ctrl-map';
+};
+
+// Show layers
+MapboxOverpass.prototype._show = function() {
+  var style = this._map.getStyle();
+  var source = /overpass/;
+  style.layers.forEach(function(layer) {
+    if (source.test(layer['source'])) {
+      layer['layout'] = layer['layout'] || {};
+      layer['layout']['visibility'] = 'visible';
+    }
+  });
+  this._map.setStyle(style);
+};
+
+// Hide layers that have the target source
+MapboxOverpass.prototype._hide = function() {
+  var style = this._map.getStyle();
+  var source = /overpass/;
+  style.layers.forEach(function(layer) {
+    if (source.test(layer['source'])) {
+      layer['layout'] = layer['layout'] || {};
+      layer['layout']['visibility'] = 'none';
+    }
+  });
+  this._map.setStyle(style);
+};
+
+// Return true if source layers has been added already on first run
+MapboxOverpass.prototype._hasSource = function() {
+  var style = this._map.getStyle();
+  var source = /overpass/;
+  return Object.keys(style.sources).filter(function(sourceName) {
+    return source.test(sourceName);
+  }).length > 0;
+};
+
+/**
+ * Define layers
+ */
+var styleLayers = [
+  {
+    'id': 'overpass fill',
+    'type': 'fill',
+    'source': 'overpass',
+    'paint': {
+      'fill-color': '#ff00ed',
+      'fill-opacity': 0.2
+    },
+    'filter': ["==", "$type", "Polygon"]
+  }, {
+    'id': 'overpass line',
+    'type': 'line',
+    'source': 'overpass',
+    'paint': {
+      'line-color': '#ff00ed',
+      'line-width': 20,
+      'line-opacity': 0.5
+    }
+  }, {
+    'id': 'overpass points',
+    'type': 'circle',
+    'source': 'overpass',
+    'paint': {
+      'circle-color': '#ff00ed',
+      'circle-radius': 10,
+      'circle-opacity': 0.5
+    }
+  }
+];
+
+// Add style layers to the map
+function addStyleLayers(style, layers, before) {
+  for (var i = 0; i < style.layers.length; i++) {
+    var layer = style.layers[i];
+    if (before === layer.id) {
+      var newLayers = style.layers.slice(0, i).concat(layers).concat(style.layers.slice(i));
+      return Object.assign({}, style, {layers: newLayers});
+    }
+  }
+  return style;
+}
+
+var inputQuery;
+var Overpass = {
+
+  query: function(map, options) {
+
+    // Add an input text box
+    $('.mapboxgl-ctrl-bottom-left').prepend('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
 
     // Update map on pressing enter
     $('#overpass').on('keypress', function(e) {
@@ -119,5 +262,5 @@ function updateMap(map) {
   });
 }
 
-// Export module
-module.exports = Overpass;
+// Export plugin
+module.exports = MapboxOverpass;
