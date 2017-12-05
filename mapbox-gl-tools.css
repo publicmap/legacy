@@ -1,3 +1,5 @@
+@import 'https://cdn.rawgit.com/lukasmartinelli/mapbox-gl-inspect/master/dist/mapbox-gl-inspect.css';
+
 .mapboxgl-popup-content {
   max-width: 200px;
   word-wrap: break-word;

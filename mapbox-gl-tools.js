@@ -23,6 +23,8 @@ var geojsonCoords = require('geojson-coords');
 var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 const MapboxTraffic = require('@mapbox/mapbox-gl-traffic');
 const MapboxGeocoder = require('@mapbox/mapbox-gl-geocoder');
+const MapboxInspect = require('mapbox-gl-inspect');
+// require('./node_modules/mapbox-gl-inspect/dist/mapbox-gl-inspect.css');
 
 defaultOptions = {
   on: 'click',
@@ -332,6 +334,9 @@ var Tools = {
       }
     }));
     map.addControl(new MapboxTraffic());
+    map.addControl(new MapboxInspect({
+      popup: new mapboxgl.Popup({closeButton: false, closeOnClick: false})
+    }));
   }
 
 }
