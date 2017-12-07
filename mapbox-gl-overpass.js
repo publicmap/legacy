@@ -5,7 +5,7 @@
  * @param {object} options - Options to configure the plugin.
 */
 
-var queryOverpass = require('query-overpass');
+var QueryOverpass = require('query-overpass');
 var stripcomments = require('strip-comments');
 
 // Mapbox Overpass
@@ -18,6 +18,7 @@ function MapboxOverpass(options) {
 
   this.options = Object.assign({
     enabled: false,
+    query: false,
     style: styleLayers,
     showButton: true,
     overpassUrl: 'https://overpass-api.de/api/interpreter'
@@ -28,12 +29,14 @@ function MapboxOverpass(options) {
   this._hide = this._hide.bind(this);
   this._show = this._show.bind(this);
   this._hasSource = this._hasSource.bind(this);
+  this._updateMap = this._updateMap.bind(this);
   this._toggle = new pluginButton({show: this.options.showButton, onToggle: this.toggle.bind(this)});
 }
 
 MapboxOverpass.prototype.onAdd = function(map) {
   this._map = map;
   map.on('load', this.render);
+  map.on('moveend', this._updateMap);
   return this._toggle.elem;
 };
 
@@ -53,9 +56,12 @@ MapboxOverpass.prototype.toggle = function() {
   this.render();
 };
 
+/**
+ * Render the plugin elements
+ */
 MapboxOverpass.prototype.render = function() {
 
-  // On first run: Add the source and style layers if not already added
+  // Add the source and style layers if not already added
   if (!this._hasSource()) {
     this._map.addSource('overpass', {
       type: 'geojson',
@@ -75,8 +81,17 @@ MapboxOverpass.prototype.render = function() {
     var style = this._map.getStyle();
     var mapStyle = addStyleLayers(style, styleLayers, topRoadLayer);
     this._map.setStyle(mapStyle);
+    this._toggle._input.onkeypress = (e) => {
+      // On hitting return in the query input
+      if (e.key === 'Enter') {
+        this.options.query = this._toggle._input.value;
+        this._updateMap();
+        return true;
+      }
+    }
   }
 
+  // Change plugin icon based on state
   if (this.options.enabled) {
     this._show();
     this._toggle.setMapIcon();
@@ -84,7 +99,22 @@ MapboxOverpass.prototype.render = function() {
     this._hide();
     this._toggle.setPluginIcon();
   }
+
 };
+
+// Update the map view with the Overpass results
+MapboxOverpass.prototype._updateMap = function() {
+  if (this.options.enabled && this.options.query) {
+    var bbox = this._map.getBounds();
+    var data;
+    var _this = this;
+    query = this._toggle._input.value.replace(/{{bbox}}/g, [bbox._sw.lat, bbox._sw.lng, bbox._ne.lat, bbox._ne.lng].join()); // Replace {{bbox}} token with map bounds
+    QueryOverpass(query, function(e, geojson) {
+      _this._map.getSource('overpass').setData(geojson);
+    });
+
+  }
+}
 
 // UI controls
 
@@ -100,17 +130,19 @@ function button() {
 // Create an input text box element
 function textInput() {
   var ti = document.createElement('input');
-  ti.className = 'mapboxgl-ctrl overpass';
+  ti.id = 'overpass';
   ti.type = 'text';
   ti.placeholder = 'Overpass QL';
+  ti.style.display = 'none'
   return ti;
 }
 
 // Plugin controls container
-function container(child, show) {
+function container(button, input, show) {
   var container = document.createElement('div');
   container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
-  container.appendChild(child);
+  container.appendChild(button);
+  container.appendChild(input);
   if (!show) {
     container.style.display = 'none';
   }
@@ -126,11 +158,8 @@ function pluginButton(options) {
 
   this._btn = button(); // Plugin toggle button
   this._btn.onclick = options.onToggle;
-  this._ti = textInput(); // Plugin  text input
-  this._ti.onkeypress = () => {
-    //
-  }
-  this.elem = container(this._btn, options.show);
+  this._input = textInput(); // Plugin  text input
+  this.elem = container(this._btn, this._input, options.show);
 }
 
 pluginButton.prototype.setPluginIcon = function() {
@@ -152,6 +181,7 @@ MapboxOverpass.prototype._show = function() {
     }
   });
   this._map.setStyle(style);
+  this._toggle._input.style.display = 'inline';
 };
 
 // Hide layers that have the target source
@@ -165,6 +195,7 @@ MapboxOverpass.prototype._hide = function() {
     }
   });
   this._map.setStyle(style);
+  this._toggle._input.style.display = 'none';
 };
 
 // Return true if source layers has been added already on first run
@@ -248,18 +279,6 @@ var Overpass = {
     )
 
   }
-}
-
-// Render the overpass results
-function updateMap(map) {
-  var bbox = map.getBounds();
-  query = inputQuery.replace(/{{bbox}}/g, [bbox._sw.lat, bbox._sw.lng, bbox._ne.lat, bbox._ne.lng].join());
-
-  queryOverpass(query, function(e, geojson) {
-    console.log(geojson);
-    map.getSource('overpass').setData(geojson);
-
-  });
 }
 
 // Export plugin
