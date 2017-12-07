@@ -1,7 +1,6 @@
 'use strict';
 
 var mapboxglTools = require('./mapbox-gl-tools');
-var MapboxOverpass = require('./mapbox-gl-overpass');
 
 mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiY2l3ZmNjNXVzMDAzZzJ0cDV6b2lkOG9odSJ9.eep6sUoBS0eMN4thZUWpyQ';
 var map = new mapboxgl.Map({
