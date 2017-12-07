@@ -6,7 +6,6 @@
 */
 
 var QueryOverpass = require('query-overpass');
-var stripcomments = require('strip-comments');
 
 // Mapbox Overpass
 // based on github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
@@ -108,10 +107,10 @@ MapboxOverpass.prototype._updateMap = function() {
     var bbox = this._map.getBounds();
     var data;
     var _this = this;
-    query = this._toggle._input.value.replace(/{{bbox}}/g, [bbox._sw.lat, bbox._sw.lng, bbox._ne.lat, bbox._ne.lng].join()); // Replace {{bbox}} token with map bounds
-    QueryOverpass(query, function(e, geojson) {
+    var overpassQuery = this._toggle._input.value.replace(/{{bbox}}/g, [bbox._sw.lat, bbox._sw.lng, bbox._ne.lat, bbox._ne.lng].join()); // Replace {{bbox}} token with map bounds
+    QueryOverpass(overpassQuery, function(e, geojson) {
       _this._map.getSource('overpass').setData(geojson);
-    });
+    }, {overpassUrl: this.options.overpassUrl});
 
   }
 }
@@ -230,13 +229,28 @@ var styleLayers = [
       'line-opacity': 0.5
     }
   }, {
-    'id': 'overpass points',
+    'id': 'overpass circle',
     'type': 'circle',
     'source': 'overpass',
     'paint': {
       'circle-color': '#ff00ed',
       'circle-radius': 10,
       'circle-opacity': 0.5
+    }
+  }, {
+    'id': 'overpass symbol',
+    'type': 'symbol',
+    'source': 'overpass',
+    'layout': {
+      'text-field': '{name}',
+      'text-allow-overlap': true,
+      "text-font": [
+        "Open Sans Semibold", "Arial Unicode MS Bold"
+      ],
+      'text-offset': [
+        0, 5
+      ],
+      'text-anchor': 'top'
     }
   }
 ];
@@ -251,34 +265,6 @@ function addStyleLayers(style, layers, before) {
     }
   }
   return style;
-}
-
-var inputQuery;
-var Overpass = {
-
-  query: function(map, options) {
-
-    // Add an input text box
-    $('.mapboxgl-ctrl-bottom-left').prepend('<div class="mapboxgl-ctrl"><input id="overpass" type="text" placeholder="Overpass QL"></input></div>')
-
-    // Update map on pressing enter
-    $('#overpass').on('keypress', function(e) {
-      if (e.which === 13) {
-
-        inputQuery = $(this).val();
-        updateMap(map);
-
-      }
-    });
-
-    // Update map on move
-    map.on('moveend', function(e) {
-      if (inputQuery) 
-        updateMap(map);
-      }
-    )
-
-  }
 }
 
 // Export plugin
