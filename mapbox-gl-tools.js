@@ -24,6 +24,7 @@ var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 const MapboxTraffic = require('@mapbox/mapbox-gl-traffic');
 const MapboxGeocoder = require('@mapbox/mapbox-gl-geocoder');
 const MapboxInspect = require('mapbox-gl-inspect');
+const MapboxOverpass = require('mapbox-gl-overpass');
 // require('./node_modules/mapbox-gl-inspect/dist/mapbox-gl-inspect.css');
 
 defaultOptions = {
@@ -337,6 +338,7 @@ var Tools = {
     map.addControl(new MapboxInspect({
       popup: new mapboxgl.Popup({closeButton: false, closeOnClick: false})
     }));
+    map.addControl(new MapboxOverpass());
   }
 
 }

@@ -19,14 +19,8 @@ mapboxglTools.initmap(map, {});
 
 map.on('load', function() {
 
-  // Inspect layer on click and show popup information
-  //mapboxglTools.inspector(map);
-
   // Add 3D buildings
   mapboxglTools.addLayer(map, {'id': '3d-buildings'});
-
-  // Add a Overpass query control
-  map.addControl(new MapboxOverpass());
 
   //mapboxglTools.addLayerInput(map);
 

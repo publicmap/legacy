@@ -21,6 +21,7 @@
     "geojson-coords": "^0.0.0",
     "mapbox": "^0.12.0",
     "mapbox-gl-inspect": "^1.2.4",
+    "mapbox-gl-overpass": "0.0.1",
     "query-overpass": "^1.5.1",
     "strip-comments": "^0.4.4",
     "urlencode": "^1.1.0",
