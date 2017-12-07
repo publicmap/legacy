@@ -23,6 +23,9 @@ var geojsonCoords = require('geojson-coords');
 var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 const MapboxTraffic = require('@mapbox/mapbox-gl-traffic');
 const MapboxGeocoder = require('@mapbox/mapbox-gl-geocoder');
+const MapboxInspect = require('mapbox-gl-inspect');
+const MapboxOverpass = require('mapbox-gl-overpass');
+// require('./node_modules/mapbox-gl-inspect/dist/mapbox-gl-inspect.css');
 
 defaultOptions = {
   on: 'click',
@@ -320,7 +323,8 @@ var Tools = {
     });
   },
 
-  // Init map controls
+  // Init map controls and plugins
+  // https://www.mapbox.com/mapbox-gl-js/plugins/
   initmap: function(map, options) {
     map.addControl(new MapboxGeocoder({accessToken: mapboxgl.accessToken}));
     map.addControl(new mapboxgl.ScaleControl());
@@ -331,6 +335,10 @@ var Tools = {
       }
     }));
     map.addControl(new MapboxTraffic());
+    map.addControl(new MapboxInspect({
+      popup: new mapboxgl.Popup({closeButton: false, closeOnClick: false})
+    }));
+    map.addControl(new MapboxOverpass());
   }
 
 }
@@ -351,9 +359,9 @@ function populateTable(feature) {
   var popupHTML = "<h3>" + feature.properties.name + "</h3>";
 
   // Show nominatim link if feature has a name
-  if (feature.properties.name != undefined)
+  if (feature.properties.name != undefined) 
     popupHTML += "<a href='" + nominatimLink(feature.properties.name, coordinates[0]) + "'>OSM Search</a><br>";
-
+  
   popupHTML += "<table style='table-layout:fixed'>";
 
   for (property in feature.properties) {

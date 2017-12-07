@@ -1,7 +1,6 @@
 'use strict';
 
 var mapboxglTools = require('./mapbox-gl-tools');
-var mapboxglOverpass = require('./mapbox-gl-overpass');
 
 mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiY2l3ZmNjNXVzMDAzZzJ0cDV6b2lkOG9odSJ9.eep6sUoBS0eMN4thZUWpyQ';
 var map = new mapboxgl.Map({
@@ -19,16 +18,10 @@ mapboxglTools.initmap(map, {});
 
 map.on('load', function() {
 
-  // Inspect layer on click and show popup information
-  //mapboxglTools.inspector(map);
-
   // Add 3D buildings
   mapboxglTools.addLayer(map, {'id': '3d-buildings'});
 
-  // Add a box to query Overpass
-  mapboxglOverpass.query(map);
-
-  // mapboxglTools.addLayerInput(map);
+  //mapboxglTools.addLayerInput(map);
 
 });
 
