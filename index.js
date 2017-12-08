@@ -1,6 +1,7 @@
 'use strict';
 
 var mapboxglTools = require('./mapbox-gl-tools');
+var MapboxNotes = require('./mapbox-gl-notes');
 
 mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiY2l3ZmNjNXVzMDAzZzJ0cDV6b2lkOG9odSJ9.eep6sUoBS0eMN4thZUWpyQ';
 var map = new mapboxgl.Map({
@@ -18,8 +19,13 @@ mapboxglTools.initmap(map, {});
 
 map.on('load', function() {
 
+  map.addControl(new MapboxNotes());
+
   // Add 3D buildings
   mapboxglTools.addLayer(map, {'id': '3d-buildings'});
+
+  // Add notes to the map
+  mapboxglTools.notes(map, {layer: "health"});
 
   //mapboxglTools.addLayerInput(map);
 
