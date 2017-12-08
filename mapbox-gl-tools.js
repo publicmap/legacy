@@ -25,10 +25,8 @@ const MapboxTraffic = require('@mapbox/mapbox-gl-traffic');
 const MapboxGeocoder = require('@mapbox/mapbox-gl-geocoder');
 const MapboxInspect = require('mapbox-gl-inspect');
 const MapboxOverpass = require('mapbox-gl-overpass');
-// require('./node_modules/mapbox-gl-inspect/dist/mapbox-gl-inspect.css');
 
 defaultOptions = {
-  on: 'click',
   styles: {
     default: {
       url: "mapbox://styles/planemad/cirnjr9do000pgxma53mkgdw0",
@@ -50,59 +48,6 @@ defaultOptions = {
 // API
 
 var Tools = {
-
-  // Inspect map layers on mouse interactivity
-  // options.layers : <Array> of layer ids to make interactive
-  // options.on : <Event>
-  inspector: function(map, options) {
-
-    options = defaultOptions || options;
-
-    // Query features on interaction with the layers
-    map.on(options.on, function(e) {
-
-      // Select the first feature from the list of features near the mouse
-      var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 4), {layers: options.styles.default.inspectable});
-
-      if (features.length > 0) {
-        console.log(features[0]);
-        var popupHTML = populateTable(features[0]);
-        var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(map);
-      }
-
-    });
-
-    // Change the mouse to a pointer on hovering over inspectable features
-    map.on('mousemove', function(e) {
-      var features = map.queryRenderedFeatures(pixelPointToSquare(e.point, 2), {layers: options.layers});
-      features.length && map.getSource('hover').setData(features[0]);
-      map.getCanvas().style.cursor = (features.length)
-        ? 'pointer'
-        : '';
-    });
-
-    // Highlight hovered over features
-    map.addSource('hover', {
-      type: 'geojson',
-      data: {
-        "type": "FeatureCollection",
-        "features": []
-      }
-    });
-    map.addLayer({
-      "id": "route",
-      "type": "line",
-      "source": "hover",
-      "layout": {
-        "line-join": "round"
-      },
-      "paint": {
-        "line-color": "#627BC1",
-        "line-width": 3,
-        "line-opacity": 0.5
-      }
-    });
-  },
 
   // Add a layer for user annotation on the map
   notes: function(map, options) {
