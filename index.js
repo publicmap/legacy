@@ -25,7 +25,7 @@ map.on('load', function() {
   mapboxglTools.addLayer(map, {'id': '3d-buildings'});
 
   // Add notes to the map
-  mapboxglTools.notes(map, {layer: "health"});
+  // mapboxglTools.notes(map, {layer: "health"});
 
   //mapboxglTools.addLayerInput(map);
 
