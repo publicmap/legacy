@@ -410,46 +410,7 @@ MapboxNotes.prototype._noteMode = function(e) {
   // Popup
   this._openNote(clickedLayerFeatures, e);
 
-  function overlayFeatureForm(feature) {
-    var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(buildForm()).addTo(this._map);
 
-    // Show existing status if available
-    if (feature) {
-      $("input[name=review][value=" + feature.properties["key"] + "]").prop('checked', true);
-      $("#author").html(feature.properties["author"]);
-      newOverlayFeature = feature;
-      newOverlayFeature["id"] = feature.properties["id"];
-      console.log(feature);
-    } else {
-      newOverlayFeature.geometry.coordinates = e.lngLat.toArray();
-    }
-
-    // Set author name if previously saved
-    if (author) {
-      $("input[name=author]").val(author);
-    }
-
-    // Update dataset with feature status on clicking save
-    document.getElementById("updateOverlayFeature").onclick = function() {
-      newOverlayFeature.properties["key"] = $("input[name=review]:checked").val();
-      author = $("input[name=author]").val();
-      newOverlayFeature.properties["author"] = author;
-      popup.remove();
-
-      _this._mapboxApi.insertFeature(newOverlayFeature, _this.options.mapbox.dataset.split('/')[1], function(err, response) {
-        console.log(response);
-        _this._noteFeatureCollection.features = _this._noteFeatureCollection.features.concat(response);
-        _this._source.setData(_this._noteFeatureCollection);
-      });
-    };
-    // Delete feature on clicking delete
-    document.getElementById("deleteOverlayFeature").onclick = function() {
-      popup.remove();
-      _this._mapboxApi.deleteFeature(newOverlayFeature["id"], _this.options.mapbox.dataset.split('/')[1], function(err, response) {
-        console.log(response);
-      });
-    };
-  }
 
 }
 
