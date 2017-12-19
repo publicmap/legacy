@@ -9,3 +9,6 @@
 
 /* Mapbox Traffic plugin https://github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.css */
 @import 'https://cdn.rawgit.com/mapbox/mapbox-gl-traffic/master/mapbox-gl-traffic.css';
+
+/* Mapbox Notes plugin */
+@import 'mapbox-gl-notes.css';

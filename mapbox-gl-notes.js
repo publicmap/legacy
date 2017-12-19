@@ -8,7 +8,17 @@
 // Mapbox Notes
 // based on github.com/mapbox/mapbox-gl-traffic/blob/master/mapbox-gl-traffic.js
 
+// A note can be used to crowdsource geolocated points of information
+// Every note has the following properties:
+// - The note <string>
+// - Author <string>
+// - Timestamp <time>
+// - Location <geometry>
+// All the properties are updated to the latest state at each change
+
+
 var MapboxClient = require('mapbox/lib/services/datasets');
+var timeAgo = require('node-time-ago');
 
 function MapboxNotes(options) {
   if (!(this instanceof MapboxNotes)) {
@@ -16,7 +26,7 @@ function MapboxNotes(options) {
   }
 
   this.options = Object.assign({
-    enabled: false,
+    active: false,
     query: null,
     mapbox: {
       dataset: 'theplanemad/citdwsmsa007846o5n1ff2zs9',
@@ -48,13 +58,23 @@ function MapboxNotes(options) {
 
   this._noteMode = this._noteMode.bind(this);
   this._fetchData = this._fetchData.bind(this);
-  this._saveData = this._saveData.bind(this);
+  this._openNote = this._openNote.bind(this);
 
   this._source = null;
-  this._noteData = {
+
+  this._author = null;
+  this._noteFeatureCollection = {
     'type': 'FeatureCollection',
     'features': []
   };
+  this._noteFeature = {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "coordinates": [],
+      "type": "Point"
+    }
+  };;
 }
 
 MapboxNotes.prototype.onAdd = function(map) {
@@ -76,7 +96,7 @@ MapboxNotes.prototype.onRemove = function() {
  * Toggle the plugin
  */
 MapboxNotes.prototype.toggle = function() {
-  this.options.enabled = !this.options.enabled;
+  this.options.active = !this.options.active;
   this.render();
 };
 
@@ -113,7 +133,7 @@ MapboxNotes.prototype.render = function() {
   }
 
   // Change plugin icon based on state
-  if (this.options.enabled) {
+  if (this.options.active) {
     this._show();
     this._toggle.setMapIcon();
   } else {
@@ -162,7 +182,7 @@ pluginButton.prototype.setPluginIcon = function() {
 };
 
 pluginButton.prototype.setMapIcon = function() {
-  this._btn.className = 'mapboxgl-ctrl-icon mapboxgl-ctrl-map';
+  this._btn.className = 'mapboxgl-ctrl-icon mapboxgl-ctrl-notes active';
 };
 
 // Show layers
@@ -231,9 +251,22 @@ function buildStyleLayers(options) {
       }
     }
   ];
-
   return styleLayers;
+}
 
+// HTML note form
+function buildForm(options) {
+
+  var formHTML = [
+    "<div class='col--12 my3'><input id='open' type='radio' name='review' value='open' checked='checked'><label class='btn--s btn--green' for='open'>Open</label><input id='closed' type='radio' name='review' value='closed'><label class='btn--s btn--red' for='closed'>Closed</label></div>",
+    "<textarea class='textarea my3' rows='2' cols='50' placeholder='Notes'></textarea>",
+    "<fieldset class='col--12 my3'><label id='reported'>Reported by:</label><input type='text' class='input input--s' name='author' placeholder='Your name'></input></fieldset>",
+    "<div class='col--12 my3'><a class='btn' id='updateOverlayFeature' href='#'>Save</a><a id='deleteOverlayFeature' class='link link--red fr my6' href='#'>Delete</a></div>",
+  ]
+
+ var noteForm = `<form id='mapbox-gl-notes-popup' class='grid w300'>${formHTML[0]}${formHTML[1]}${formHTML[2]}${formHTML[3]}</form>`;
+
+  return noteForm;
 }
 
 // Add style layers to the map
@@ -273,17 +306,81 @@ MapboxNotes.prototype._fetchData = function(startID) {
         feature.properties.id = feature.id;
       });
 
-      _this._noteData.features = _this._noteData.features.concat(data.features);
+      _this._noteFeatureCollection.features = _this._noteFeatureCollection.features.concat(data.features);
       var lastFeatureID = data.features[data.features.length - 1].id;
       _this._fetchData(lastFeatureID);
     }
-    _this._source.setData(_this._noteData);
+    _this._source.setData(_this._noteFeatureCollection);
   });
 }
 
-MapboxNotes.prototype._saveData = function() {}
+MapboxNotes.prototype._openNote = function(notes, location) {
+
+  // Create a popup form at the location
+  var popup = new mapboxgl.Popup().setLngLat(location.lngLat).setHTML(buildForm()).addTo(this._map);
+
+  // Populate with data from existing note if available else only set the clicked location
+  if (notes.length) {
+    this._noteFeature = notes[0];   // Get the first note from the result
+    this._noteFeature["name"] = this._noteFeature.properties["name"];
+    this._noteFeature["id"] = this._noteFeature.properties["id"];
+    $("#mapbox-gl-notes-popup input[name=review][value=" + this._noteFeature.properties["key"] + "]").prop('checked', true);
+    $("#mapbox-gl-notes-popup textarea").text(this._noteFeature.properties["name"]);
+    
+    // If previous author name is available
+    if (this._noteFeature.properties["author"]){
+      $("#mapbox-gl-notes-popup #reported").append(`<span id='author' class='txt-code'>${this._noteFeature.properties["author"]}</span>`);
+    }
+
+    let age = timeAgo(this._noteFeature.properties["timestamp"]);
+    $("#mapbox-gl-notes-popup #reported").append(`<span class='fr'>${age}</span>`);
+  
+  } else {
+    this._noteFeature.geometry.coordinates = location.lngLat.toArray();
+  }
+  // Set author name if previously saved
+  if (this._author) {    
+    $("input[name=author]").val(this._author);
+  }
+
+  console.log(this._noteFeature);
+  var _this = this;
+
+  // Update dataset with feature status on clicking save
+  document.getElementById("updateOverlayFeature").onclick = function() {
+
+    // Update note properties from the form
+    _this._noteFeature.properties["name"] = $("#mapbox-gl-notes-popup textarea").val();
+    _this._noteFeature.properties["key"] = $("input[name=review]:checked").val();
+    _this._author = $("input[name=author]").val();
+    _this._noteFeature.properties["author"] = _this._author;
+    _this._noteFeature.properties["timestamp"] = Date.now();
+    popup.remove();
+
+    // Upload note
+    _this._mapboxApi.insertFeature(_this._noteFeature, _this.options.mapbox.dataset.split('/')[1], function(err, response) {
+      console.log(response);
+      _this._noteFeatureCollection.features = _this._noteFeatureCollection.features.concat(response);
+      _this._source.setData(_this._noteFeatureCollection);
+    });
+  };
+
+  // Delete feature on clicking delete
+  document.getElementById("deleteOverlayFeature").onclick = function() {
+    popup.remove();
+    // Push a note with a deleted=true property
+    _this._mapboxApi.deleteFeature(_this._noteFeature["id"], _this.options.mapbox.dataset.split('/')[1], function(err, response) {
+      console.log(response);
+    });
+    // Delete note from dataset
+    _this._mapboxApi.deleteFeature(_this._noteFeature["id"], _this.options.mapbox.dataset.split('/')[1], function(err, response) {
+      console.log(response);
+    });
+  };
+
+}
+
 MapboxNotes.prototype._noteMode = function(e) {
-  console.log('shoot');
 
   var newOverlayFeature = {
     "type": "Feature",
@@ -296,6 +393,7 @@ MapboxNotes.prototype._noteMode = function(e) {
 
   var _this = this;
 
+  // Check for notes at clicked location
   var clickedLayerFeatures = this._map.queryRenderedFeatures([
     [
       e.point.x - 5,
@@ -307,24 +405,18 @@ MapboxNotes.prototype._noteMode = function(e) {
     ]
   ], {layers: ['notes circle']});
 
-  if (clickedLayerFeatures.length) {
-    overlayFeatureForm(clickedLayerFeatures[0]);
 
-  } else {
-    overlayFeatureForm();
-  }
 
   // Popup
+  this._openNote(clickedLayerFeatures, e);
+
   function overlayFeatureForm(feature) {
-    var formOptions = "<div class='radio-pill pill pad1y clearfix'><input id='safe' type='radio' name='review' value='safe' checked='checked'><label for='safe' class='short button icon check fill-green'>Safe</label><input id='unsafe' type='radio' name='review' value='unsafe'><label for='unsafe' class='short button icon check fill-red'>Danger</label></div>";
-    var formReviewer = "<fieldset><label>Reported by: <span id='reviewer' style='padding:5px;background-color:#eee'></span></label><input type='text' name='reviewer' placeholder='name'></input></fieldset>"
-    var popupHTML = "<form>" + formOptions + formReviewer + "<a id='updateOverlayFeature' class='button col4' href='#'>Save</a><a id='deleteOverlayFeature' class='button quiet fr col4' href='#' style=''>Delete</a></form>";
-    var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(popupHTML).addTo(_this._map);
+    var popup = new mapboxgl.Popup().setLngLat(e.lngLat).setHTML(buildForm()).addTo(this._map);
 
     // Show existing status if available
     if (feature) {
       $("input[name=review][value=" + feature.properties["key"] + "]").prop('checked', true);
-      $("#reviewer").html(feature.properties["contributed_by"]);
+      $("#author").html(feature.properties["author"]);
       newOverlayFeature = feature;
       newOverlayFeature["id"] = feature.properties["id"];
       console.log(feature);
@@ -332,21 +424,22 @@ MapboxNotes.prototype._noteMode = function(e) {
       newOverlayFeature.geometry.coordinates = e.lngLat.toArray();
     }
 
-    // Set reviewer name if previously saved
-    if (reviewer) {
-      $("input[name=reviewer]").val(reviewer);
+    // Set author name if previously saved
+    if (author) {
+      $("input[name=author]").val(author);
     }
 
     // Update dataset with feature status on clicking save
     document.getElementById("updateOverlayFeature").onclick = function() {
       newOverlayFeature.properties["key"] = $("input[name=review]:checked").val();
-      reviewer = $("input[name=reviewer]").val();
-      newOverlayFeature.properties["contributed_by"] = reviewer;
+      author = $("input[name=author]").val();
+      newOverlayFeature.properties["author"] = author;
       popup.remove();
+
       _this._mapboxApi.insertFeature(newOverlayFeature, _this.options.mapbox.dataset.split('/')[1], function(err, response) {
         console.log(response);
-        _this._noteData.features = _this._noteData.features.concat(response);
-        _this._source.setData(_this._noteData);
+        _this._noteFeatureCollection.features = _this._noteFeatureCollection.features.concat(response);
+        _this._source.setData(_this._noteFeatureCollection);
       });
     };
     // Delete feature on clicking delete
