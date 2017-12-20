@@ -10,7 +10,6 @@
 var xtend = require('xtend');
 var urlencode = require('urlencode');
 var geojsonCoords = require('geojson-coords');
-var mapbox = new MapboxClient(mapboxAccessDatasetToken);
 const MapboxTraffic = require('@mapbox/mapbox-gl-traffic');
 const MapboxGeocoder = require('@mapbox/mapbox-gl-geocoder');
 const MapboxInspect = require('mapbox-gl-inspect');
