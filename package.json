@@ -4,8 +4,8 @@
   "description": "An open map for the public",
   "main": "index.js",
   "scripts": {
-    "start": "budo index.js --serve=bundle.js --live -d",
-    "build": "browserify index.js > bundle.js"
+    "start": "browserify js/index.js > js/dist/publicmap.js && budo js/index.js --serve=js/dist/publicmap.js --live -d",
+    "build": "browserify js/index.js > js/dist/publicmap.js"
   },
   "author": "Arun Ganesh",
   "license": "Unlicense",
@@ -19,9 +19,10 @@
     "babel-core": "^6.26.0",
     "babelify": "^8.0.0",
     "geojson-coords": "^0.0.0",
-    "mapbox": "^0.12.0",
+    "mapbox": "^1.0.0-beta9",
     "mapbox-gl-inspect": "^1.2.4",
-    "mapbox-gl-overpass": "0.0.1",
+    "mapbox-gl-overpass": "0.0.5",
+    "node-time-ago": "^1.0.0",
     "query-overpass": "^1.5.1",
     "strip-comments": "^0.4.4",
     "urlencode": "^1.1.0",
