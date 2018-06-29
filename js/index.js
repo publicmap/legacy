@@ -1,7 +1,7 @@
 'use strict';
 
-var mapboxglTools = require('./mapbox-gl-tools');
-var MapboxNotes = require('./mapbox-gl-notes');
+var mapboxglTools = require('./mapboxgl-tools');
+var MapboxNotes = require('./mapboxgl-tools/mapbox-gl-notes');
 
 mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiY2l3ZmNjNXVzMDAzZzJ0cDV6b2lkOG9odSJ9.eep6sUoBS0eMN4thZUWpyQ';
 var map = new mapboxgl.Map({
