@@ -69,13 +69,13 @@
 
 
 map.addLayer({
-                  'id': 'protected_areas',
+                  'id': 'asi-monuments-areas',
                   'type': 'raster',
                   'source': {
                     'type': 'raster',
                     'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:protected_areas&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512'],
                     'tileSize': 512,
-                    'minzoom': 15
+                    'minzoom': 10
                   },
                   'paint': {}
                 });
@@ -85,8 +85,8 @@ map.addLayer({
           'type': 'raster',
           'source': {
             'type': 'raster',
-            'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:monuments2&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256'],
-            'tileSize': 256
+            'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:monuments2&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512'],
+            'tileSize': 512
           },
           'paint': {}
         });
