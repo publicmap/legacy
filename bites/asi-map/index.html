@@ -3,12 +3,16 @@
 
   <head>
     <meta charset='utf-8' />
-    <title>OpenStreetMap GL Viewer</title>
+    <title>Cultural monuments of India</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
     <!--     Mapbox GL JS
      -->
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
+    <!-- Turf -->
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <!--     Table builder -->
+    <script src='https://cdn.jsdelivr.net/gh/a-x-/table-builder/tablebuilder.js'></script>
     <style>
       body {
         margin: 0;
@@ -22,6 +26,11 @@
         width: 100%;
       }
 
+      .mapboxgl-popup-content {
+        max-width: 400px;
+        max-height: 300px;
+        overflow: scroll;
+      }
 
     </style>
   </head>
@@ -31,7 +40,6 @@
     <div id='map'></div>
 
     <script>
-
       var map = new mapboxgl.Map({
         container: 'map',
         style: 'https://cdn.jsdelivr.net/gh/mapbox/mapbox-gl-styles/styles/empty-v8.json',
@@ -59,28 +67,31 @@
         });
 
 
-        
-               map.addLayer({
-          'id': 'protected_areas',
+
+map.addLayer({
+                  'id': 'protected_areas',
+                  'type': 'raster',
+                  'source': {
+                    'type': 'raster',
+                    'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:protected_areas&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512'],
+                    'tileSize': 512,
+                    'minzoom': 15
+                  },
+                  'paint': {}
+                });
+
+        map.addLayer({
+          'id': 'asi-monuments',
           'type': 'raster',
           'source': {
             'type': 'raster',
-            'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:protected_areas&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512'],
-            'tileSize': 512
+            'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:monuments2&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256'],
+            'tileSize': 256
           },
           'paint': {}
         });
 
-        map.addLayer({
-          'id': 'monuments',
-          'type': 'raster',
-          'source': {
-            'type': 'raster',
-            'tiles': ['https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:monuments2&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512'],
-            'tileSize': 512
-          },
-          'paint': {}
-        });
+
 
       });
 
@@ -103,6 +114,64 @@
 
 
       map.addControl(new mapboxgl.FullscreenControl());
+
+      // When a click event occurs on a feature in the places layer, open a popup at the
+      // location of the feature, with description HTML from its properties.
+      map.on('click', function(e) {
+
+        getFeatureInfo(map, e, {
+          url: 'https://publicmap-cors-anywhere.herokuapp.com/https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms',
+          layer: 'asi:monuments2'
+        });
+
+
+      });
+
+      function getFeatureInfo(map, clickEvent, WMSLayer) {
+
+        let coordinates = clickEvent.lngLat;
+        let requestFormat = 'application/json';
+        let buffer = 50;
+        let maxFeatures = 100;
+
+        // Create a bbox of map bounds
+        const bbox = [map.getBounds()._sw.lng, map.getBounds()._sw.lat, map.getBounds()._ne.lng, map.getBounds()._ne.lat]
+
+
+        $.ajax(`${WMSLayer.url}?REQUEST=GetFeatureInfo&EXCEPTIONS=${requestFormat}&BBOX=${bbox.join(',')}&SERVICE=WMS&INFO_FORMAT=${requestFormat}&QUERY_LAYERS=${WMSLayer.layer}&FEATURE_COUNT=${maxFeatures}&Layers=${WMSLayer.layer}&WIDTH=${map._container.clientWidth}&HEIGHT=${map._container.clientHeight}&format=image%2Fpng&styles=&srs=EPSG%3A4326&version=1.1.1&x=${clickEvent.point.x}&y=${clickEvent.point.y}&buffer=${buffer}`).done(function(data) {
+          if (console && console.log) {
+            console.log("Sample of data:", data);
+
+            // Ensure that if the map is zoomed out such that multiple
+            // copies of the feature are visible, the popup appears
+            // over the copy being pointed to.
+            while (Math.abs(coordinates.lng - coordinates[0]) > 180) {
+              coordinates[0] += coordinates.lng > coordinates[0] ? 360 : -360;
+            }
+
+
+            new mapboxgl.Popup()
+              .setLngLat(coordinates)
+              .setHTML((new TableBuilder({
+                  'class': 'popup-table'
+                }))
+                .setHeaders({
+                  mon_num: 'id',
+                  monumentna: 'Name',
+                  photo_img: 'Photo'
+                })
+                .setData(data.features.map(d => {
+                  d.properties.photo_img = `<img src="http://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}" width=100>`;
+                  d.properties.address = `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})`
+                  return d.properties
+                }))
+                .render())
+              .addTo(map);
+
+          }
+        });
+
+      }
 
     </script>
 
