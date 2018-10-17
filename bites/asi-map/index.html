@@ -70,7 +70,8 @@
   </footer>
 
   <script>
-    const cors_anywhere_url = 'https://cors-anywhere.herokuapp.com/'
+    // Configure cors-anywhere
+    const cors_anywhere_url = window.location.href.indexOf('publicmap.github.io')>0? 'https://publicmap-cors-anywhere.herokuapp.com/':'https://cors-anywhere.herokuapp.com/'
 
     var map = new mapboxgl.Map({
       container: 'map',
