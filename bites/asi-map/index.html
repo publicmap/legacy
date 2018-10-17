@@ -37,6 +37,12 @@
       overflow: scroll;
     }
 
+    #feature-table {
+      position: relative;
+      z-index: 100;
+      background-color: white;
+    }
+
     table img {
       max-width: inherit;
     }
@@ -47,9 +53,13 @@
       bottom: 0;
       width: 100%;
       overflow: scroll;
-      padding: 10px;
+      padding: 10px 10px 40px;
+      background-color: rgba(255, 255, 255, 0.8);
+      transition: background-color .5s;
+    }
+
+    footer:hover {
       background-color: rgba(255, 255, 255, 0.9);
-      z-index: 100;
     }
   </style>
 </head>
@@ -64,7 +74,7 @@
       </div>
       <span>Click a location to view the list of <a href="https://en.wikipedia.org/wiki/Lists_of_Indian_Monuments_of_National_Importance">
           ancient monuments</a> protected by the <a href="http://asi.nic.in/alphabetical-list-of-monuments/">Archaeological
-          Survey of India (ASI)</a>. Data source: <a href="https://bhuvan-app1.nrsc.gov.in/culture_monuments/">ASI/Bhuvan</a></span>
+          Survey of India (ASI)</a>.</span>
     </div>
     <div id='feature-table'> </div>
   </footer>
@@ -93,7 +103,8 @@
           tiles: [
             'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
           ],
-          tileSize: 256
+          tileSize: 256,
+          attribution: 'Basemap <a href="https://www.osm.org" target=_blank>©  OpenStreetMap contributors</a>'
         },
         paint: {
           'raster-opacity': 0.4
@@ -122,20 +133,24 @@
           tiles: [
             `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:monuments2&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`
           ],
-          tileSize: 256
+          tileSize: 256,
+          attribution: 'Monuments: <a href="https://bhuvan-app1.nrsc.gov.in/culture_monuments/">ASI/Bhuvan</a>'
         },
         paint: {}
       });
 
-      map.addSource('feature-info', {
+      map.addSource('feature-info-source', {
         type: 'geojson',
-        data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_10m_ports.geojson'
+        data: null
       })
       map.addLayer({
         id: 'feature-info',
         type: 'circle',
         source: 'feature-info-source',
-        paint: {}
+        paint: {
+          'circle-color': 'red',
+          'circle-radius': 4
+        }
       });
 
     });
@@ -185,6 +200,9 @@
       $.ajax(
         `${WMSLayer.url}?REQUEST=GetFeatureInfo&EXCEPTIONS=${requestFormat}&BBOX=${bbox.join(',')}&SERVICE=WMS&INFO_FORMAT=${requestFormat}&QUERY_LAYERS=${WMSLayer.layer}&FEATURE_COUNT=${maxFeatures}&Layers=${WMSLayer.layer}&WIDTH=${map._container.clientWidth}&HEIGHT=${map._container.clientHeight}&format=image%2Fpng&styles=&srs=EPSG%3A4326&version=1.1.1&x=${clickEvent.point.x}&y=${clickEvent.point.y}&buffer=${buffer}`
       ).done(function (data) {
+
+        map.getSource('feature-info-source').setData(data);
+
         if (console && console.log) {
           console.log("Sample of data:", data);
 
@@ -201,27 +219,23 @@
             .setHeaders({
               photo: 'Photo',
               name: 'Name',
-              location: 'Location',
-              id: 'ID',
+              location: 'Location'
             })
             .setData(data.features.map(d => {
-              const img_url = `http://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}`;
+              const img_url = d.properties.photo ?
+                `http://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}` :
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/100px-No_image_available.svg.png';
               const monument_info_url =
                 `https://www.google.co.in/search?q=${d.properties.monumentna} '${d.properties.location}'`
               d.properties.photo_img =
                 `<a href="${img_url}" target=_blank><img src="${img_url}" width=100></a>`;
               const location_info_url =
-                `https://www.google.co.in/search?q="${d.properties.location}" ${d.properties.state}`
-
-              d.properties.address =
-                `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})`
-
+                `https://www.google.co.in/search?q='${d.properties.location}' ${d.properties.state}`
 
               return {
                 photo: `<a href="${img_url}" target=_blank><img src="${img_url}" width=200></a>`,
-                name: `${d.properties.monumentna}<br><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a>`,
-                location: `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})`,
-                id: d.properties.mon_num
+                name: `${d.properties.monumentna}<div class="txt-xs txt-kbd">${d.properties.mon_num}</div><div><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a></div>`,
+                location: `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})<div><a href="${location_info_url}" class="txt-s" target=_blank>Google</a></div>`
               }
 
             }))
