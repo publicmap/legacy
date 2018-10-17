@@ -71,7 +71,8 @@
 
   <script>
     // Configure cors-anywhere
-    const cors_anywhere_url = window.location.href.indexOf('publicmap.github.io')>0? 'https://publicmap-cors-anywhere.herokuapp.com/':'https://cors-anywhere.herokuapp.com/'
+    const cors_anywhere_url = window.location.href.indexOf('publicmap.github.io') > 0 ?
+      'https://publicmap-cors-anywhere.herokuapp.com/' : 'https://cors-anywhere.herokuapp.com/'
 
     var map = new mapboxgl.Map({
       container: 'map',
@@ -198,18 +199,31 @@
               'class': 'popup-table'
             }))
             .setHeaders({
-              mon_num: 'id',
-              monumentna: 'Name',
-              address: 'Location',
-              photo_img: 'Photo'
+              photo: 'Photo',
+              name: 'Name',
+              location: 'Location',
+              id: 'ID',
             })
             .setData(data.features.map(d => {
               const img_url = `http://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}`;
+              const monument_info_url =
+                `https://www.google.co.in/search?q=${d.properties.monumentna} '${d.properties.location}'`
               d.properties.photo_img =
                 `<a href="${img_url}" target=_blank><img src="${img_url}" width=100></a>`;
+              const location_info_url =
+                `https://www.google.co.in/search?q="${d.properties.location}" ${d.properties.state}`
+
               d.properties.address =
                 `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})`
-              return d.properties
+
+
+              return {
+                photo: `<a href="${img_url}" target=_blank><img src="${img_url}" width=200></a>`,
+                name: `${d.properties.monumentna}<br><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a>`,
+                location: `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})`,
+                id: d.properties.mon_num
+              }
+
             }))
             .render();
 
@@ -220,15 +234,18 @@
 
     }
   </script>
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-67847650-2"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-67847650-2"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
 
-  gtag('config', 'UA-67847650-2');
-</script>
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag('js', new Date());
+
+    gtag('config', 'UA-67847650-2');
+  </script>
 
 
 </body>
