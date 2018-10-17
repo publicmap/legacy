@@ -234,7 +234,7 @@
 
               return {
                 photo: `<a href="${img_url}" target=_blank><img src="${img_url}" width=200></a>`,
-                name: `${d.properties.monumentna}<div class="txt-xs txt-kbd">${d.properties.mon_num}</div><div><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a></div>`,
+                name: `${d.properties.monumentna}<br><span class="txt-xs txt-kbd">${d.properties.mon_num}</span><div><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a></div>`,
                 location: `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})<div><a href="${location_info_url}" class="txt-s" target=_blank>Google</a></div>`
               }
 
