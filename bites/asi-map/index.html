@@ -19,16 +19,13 @@
   <!-- Table builder -->
   <script src='https://cdn.jsdelivr.net/gh/a-x-/table-builder/tablebuilder.js'></script>
   <style>
+    html,
     body {
-      margin: 0;
-      padding: 0;
+      height: 100%;
     }
 
     #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
+      min-height: 40%;
     }
 
     .mapboxgl-popup-content {
@@ -37,37 +34,24 @@
       overflow: scroll;
     }
 
-    #feature-table {
-      position: relative;
-      z-index: 100;
-      background-color: white;
-    }
-
     table img {
       max-width: inherit;
     }
 
     footer {
-      position: absolute;
-      max-height: 400px;
-      bottom: 0;
-      width: 100%;
+      max-height: 60%;
       overflow: scroll;
-      padding: 10px 10px 40px;
+      padding: 10px;
       background-color: rgba(255, 255, 255, 0.8);
       transition: background-color .5s;
-    }
-
-    footer:hover {
-      background-color: rgba(255, 255, 255, 0.9);
     }
   </style>
 </head>
 
-<body>
+<body class='flex-parent flex-parent--column'>
 
-  <div id='map'></div>
-  <footer class='prose'>
+  <div id='map' class='flex-child--grow'></div>
+  <footer class='prose flex-child'>
     <div id='info'>
       <div class='txt-l'>
         Monuments of National Importance in India
@@ -80,65 +64,95 @@
   </footer>
 
   <script>
-    // Configure cors-anywhere
+    // Configure cors-anywhere proxy server for WMS services that has CORS enabled
+    // Deploy custom proxy instance at https://github.com/asg017/cors-anywhere-observable and whitelist the deploy url
+
     const cors_anywhere_url = window.location.href.indexOf('publicmap.github.io') > 0 ?
       'https://publicmap-cors-anywhere.herokuapp.com/' : 'https://cors-anywhere.herokuapp.com/'
 
-    var map = new mapboxgl.Map({
-      container: 'map',
-      style: 'https://cdn.jsdelivr.net/gh/mapbox/mapbox-gl-styles/styles/empty-v8.json',
-      zoom: 4,
-      center: [74.5447, 20.6892],
-      hash: true
-    });
+    // App configuration
+    const _app = {
+      map: {
+        init: {
+          container: 'map',
+          style: 'https://cdn.jsdelivr.net/gh/mapbox/mapbox-gl-styles/styles/empty-v8.json',
+          zoom: 4,
+          center: [74.5447, 20.6892],
+          pitchWithRotate: false,
+          maxBounds: [66, 7, 99, 37],
+          hash: true
+        },
+        layers: [{
+            id: 'osm-tiles',
+            type: 'raster',
+            source: {
+              type: 'raster',
+              // Add OSM tiles: https://wiki.openstreetmap.org/wiki/Tile_servers
+              tiles: [
+                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
+              ],
+              tileSize: 256,
+              attribution: 'Basemap <a href="https://www.osm.org" target=_blank>©  OpenStreetMap contributors</a>'
+            },
+            paint: {
+              'raster-opacity': {
+                stops: [
+                  [10, 0.6],
+                  [16, 0.9]
+                ]
+              }
+            }
+          },
+          {
+            id: 'asi-monuments-areas',
+            type: 'raster',
+            source: {
+              type: 'raster',
+              tiles: [
+                getMapUrl({
+                  baseUrl: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
+                  layers: 'asi:protected_areas'
+                })
+              ],
+              tileSize: 256,
+              minzoom: 10
+            },
+            paint: {}
+          },
+          {
+            id: 'asi-monuments',
+            type: 'raster',
+            source: {
+              type: 'raster',
+              tiles: [getMapUrl({
+                baseUrl: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
+                layers: 'asi:monuments2'
+              })],
+              tileSize: 256,
+              attribution: 'Monuments: <a href="https://bhuvan-app1.nrsc.gov.in/culture_monuments/">ASI/Bhuvan</a>'
+            },
+            paint: {
+              'raster-hue-rotate': 40,
+              'raster-contrast': -0.2
+            }
+          }
+        ],
+        onClick: {
+          getFeatureInfo: {
+            url: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
+            layer: 'asi:monuments2'
+          }
+        }
+      }
+    }
+
+    var map = new mapboxgl.Map(_app.map.init);
 
     map.on('load', function () {
 
-      map.addLayer({
-        id: 'osm-tiles',
-        type: 'raster',
-        source: {
-          type: 'raster',
-          // Add OSM tiles: https://wiki.openstreetmap.org/wiki/Tile_servers
-          tiles: [
-            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          ],
-          tileSize: 256,
-          attribution: 'Basemap <a href="https://www.osm.org" target=_blank>©  OpenStreetMap contributors</a>'
-        },
-        paint: {
-          'raster-opacity': 0.4
-        }
-      });
+      _app.map.layers.forEach(layer => map.addLayer(layer))
 
-      map.addLayer({
-        id: 'asi-monuments-areas',
-        type: 'raster',
-        source: {
-          type: 'raster',
-          tiles: [
-            `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:protected_areas&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=512&HEIGHT=512`
-          ],
-          tileSize: 512,
-          minzoom: 10
-        },
-        paint: {}
-      });
-
-      map.addLayer({
-        id: 'asi-monuments',
-        type: 'raster',
-        source: {
-          type: 'raster',
-          tiles: [
-            `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms?STYLES=&LAYERS=asi:monuments2&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`
-          ],
-          tileSize: 256,
-          attribution: 'Monuments: <a href="https://bhuvan-app1.nrsc.gov.in/culture_monuments/">ASI/Bhuvan</a>'
-        },
-        paint: {}
-      });
-
+      // Layers for data from WMS get feature info
       map.addSource('feature-info-source', {
         type: 'geojson',
         data: null
@@ -196,22 +210,16 @@
       // Create a bbox of map bounds
       const bbox = [map.getBounds()._sw.lng, map.getBounds()._sw.lat, map.getBounds()._ne.lng, map.getBounds()._ne.lat]
 
-
-      $.ajax(
+      // Construct the WMS GetFeatureInfo URL
+      const getFeatureInfoUrl =
         `${WMSLayer.url}?REQUEST=GetFeatureInfo&EXCEPTIONS=${requestFormat}&BBOX=${bbox.join(',')}&SERVICE=WMS&INFO_FORMAT=${requestFormat}&QUERY_LAYERS=${WMSLayer.layer}&FEATURE_COUNT=${maxFeatures}&Layers=${WMSLayer.layer}&WIDTH=${map._container.clientWidth}&HEIGHT=${map._container.clientHeight}&format=image%2Fpng&styles=&srs=EPSG%3A4326&version=1.1.1&x=${clickEvent.point.x}&y=${clickEvent.point.y}&buffer=${buffer}`
-      ).done(function (data) {
 
-        map.getSource('feature-info-source').setData(data);
+      fetch(getFeatureInfoUrl).then(function (response) {
+          return response.json();
+        })
+        .then(function (data) {
 
-        if (console && console.log) {
-          console.log("Sample of data:", data);
-
-          // Ensure that if the map is zoomed out such that multiple
-          // copies of the feature are visible, the popup appears
-          // over the copy being pointed to.
-          while (Math.abs(coordinates.lng - coordinates[0]) > 180) {
-            coordinates[0] += coordinates.lng > coordinates[0] ? 360 : -360;
-          }
+          map.getSource('feature-info-source').setData(data);
 
           let table_HTML = (new TableBuilder({
               'class': 'popup-table'
@@ -241,13 +249,28 @@
             }))
             .render();
 
-          $('#feature-table').html(table_HTML)
+          $('#feature-table').html(table_HTML);
 
-        }
-      });
+          map.resize();
+
+          if (data.features.length) {
+            map.fitBounds(turf.bbox(data), {
+              padding: 20
+            });
+          } else {
+            map.fitBounds(_app.map.init.maxBounds);
+          }
+
+
+        });
 
     }
+
+    function getMapUrl(config) {
+      return `${config.baseUrl}?STYLES=&LAYERS=${config.layers}&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`
+    }
   </script>
+
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-67847650-2"></script>
   <script>
