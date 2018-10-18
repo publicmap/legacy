@@ -115,7 +115,7 @@
                 })
               ],
               tileSize: 256,
-              minzoom: 10
+              minzoom: 12
             },
             paint: {}
           },
@@ -255,7 +255,8 @@
 
           if (data.features.length) {
             map.fitBounds(turf.bbox(data), {
-              padding: 20
+              padding: 20,
+              maxZoom: 15
             });
           } else {
             map.fitBounds(_app.map.init.maxBounds);
