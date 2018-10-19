@@ -79,9 +79,9 @@
           zoom: 4,
           center: [74.5447, 20.6892],
           pitchWithRotate: false,
-          maxBounds: [66, 7, 99, 37],
           hash: true
         },
+        bounds: [66, 7, 99, 37],
         layers: [{
             id: 'osm-tiles',
             type: 'raster',
@@ -147,6 +147,9 @@
     }
 
     var map = new mapboxgl.Map(_app.map.init);
+    if (typeof _app.map.bounds !== 'undefined') {
+      map.fitBounds(_app.map.bounds);
+    }
 
     map.on('load', function () {
 
@@ -259,7 +262,7 @@
               maxZoom: 15
             });
           } else {
-            map.fitBounds(_app.map.init.maxBounds);
+            map.fitBounds(_app.map.init.fitBounds);
           }
 
 
