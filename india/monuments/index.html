@@ -170,6 +170,8 @@
     }
 
     var map = new mapboxgl.Map(_app.map.init);
+    
+    // Set initial view to the defined bounds
     if (typeof _app.map.bounds !== 'undefined') {
       map.fitBounds(_app.map.bounds);
     }
@@ -234,7 +236,7 @@
       },
       trackUserLocation: true,
       fitBoundsOptions: {
-        maxZoom: 11
+        maxZoom: 6
       }
     })
     map.addControl(geolocateControl, 'bottom-left');
@@ -283,7 +285,7 @@
             })
             .setData(data.features.map(d => {
               const img_url = d.properties.photo ?
-                `http://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}` :
+                `https://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}` :
                 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/100px-No_image_available.svg.png';
               const monument_info_url =
                 `https://www.google.co.in/search?q=${d.properties.monumentna} '${d.properties.location}'`
