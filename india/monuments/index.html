@@ -1,345 +1,419 @@
 <!DOCTYPE html>
 <html>
 
-<head>
-  <meta charset='utf-8' />
-  <title>Map of ancient monuments of India</title>
-  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-  <!--     Mapbox GL JS -->
-  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
-  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
-  <!-- Mapbox Geocoder -->
-  <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.min.js'></script>
-  <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.css'
-    type='text/css' />
-  <!--  Mapbox Assembly CSS -->
-  <link href='https://api.mapbox.com/mapbox-assembly/v0.23.1/assembly.min.css' rel='stylesheet'>
-  <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.23.1/assembly.js"></script>
-  <!-- Turf -->
-  <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
-  <!-- Jquery -->
-  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-    crossorigin="anonymous"></script>
-  <!-- Table builder -->
-  <script src='https://cdn.jsdelivr.net/gh/a-x-/table-builder/tablebuilder.js'></script>
-  <style>
-    html,
-    body {
-      height: 100%;
-    }
+  <head>
+    <meta charset='utf-8' />
+    <title>Map of ancient monuments of India</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <!--     Mapbox GL JS -->
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
+    <!-- Mapbox Geocoder -->
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.min.js'></script>
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.css' type='text/css' />
+    <!--  Mapbox Assembly CSS -->
+    <link href='https://api.mapbox.com/mapbox-assembly/v0.23.1/assembly.min.css' rel='stylesheet'>
+    <script async defer src="https://api.mapbox.com/mapbox-assembly/v0.23.1/assembly.js"></script>
+    <!-- Turf -->
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <!-- Jquery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <!-- Table builder -->
+    <script src='https://cdn.jsdelivr.net/gh/a-x-/table-builder/tablebuilder.js'></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
 
-    #map {
-      min-height: 40%;
-    }
+      #map {
+        min-height: 40%;
+      }
 
-    .mapboxgl-ctrl-geocoder {
-      width: 30px;
-      min-width: auto;
-    }
+      .mapboxgl-ctrl-geocoder {
+        width: 30px;
+        min-width: auto;
+      }
 
-    .mapboxgl-ctrl-geocoder .suggestions,
-    .mapboxgl-ctrl-geocoder div {
-      display: none;
-    }
+      .mapboxgl-ctrl-geocoder .suggestions li,
+      .mapboxgl-ctrl-geocoder div {
+        display: none;
+      }
 
-    .mapboxgl-ctrl-geocoder:hover {
-      width: 200px;
-      min-width: inherit;
-      transition: width 0.3s ease-in-out;
-    }
+      .mapboxgl-ctrl-geocoder:hover {
+        width: 200px;
+        min-width: inherit;
+        transition: width 0.3s ease-in-out;
+      }
 
-    .mapboxgl-ctrl-geocoder:hover .suggestions,
-    .mapboxgl-ctrl-geocoder:hover div {
-      display: inherit;
-    }
+      .mapboxgl-ctrl-geocoder:hover .suggestions li,
+      .mapboxgl-ctrl-geocoder:hover div {
+        display: inherit;
+      }
 
-    table img {
-      max-width: inherit;
-    }
+      table img {
+        max-width: inherit;
+      }
 
-    footer {
-      max-height: 60%;
-      overflow: scroll;
-      padding: 10px;
-      background-color: rgba(255, 255, 255, 0.8);
-      transition: background-color .5s;
-    }
-  </style>
-</head>
+      footer {
+        max-height: 60%;
+        overflow: scroll;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.8);
+        transition: background-color .5s;
+      }
 
-<body class='flex-parent flex-parent--column'>
+    </style>
+  </head>
 
-  <div id='map' class='flex-child--grow'></div>
-  <footer class='prose flex-child'>
-    <div id='info'>
-      <div class='txt-l'>
-        Monuments of National Importance in India
-      </div>
-      <span>Click a location to view the list of <a href="https://en.wikipedia.org/wiki/Lists_of_Indian_Monuments_of_National_Importance">
+  <body class='flex-parent flex-parent--column'>
+
+    <div id='map' class='flex-child--grow'></div>
+    <footer class='prose flex-child'>
+      <div id='info'>
+        <div class='txt-l'>
+          Monuments of National Importance in India
+        </div>
+        <span>Click a location to view the list of <a href="https://en.wikipedia.org/wiki/Lists_of_Indian_Monuments_of_National_Importance">
           ancient monuments</a> protected by the <a href="http://asi.nic.in/alphabetical-list-of-monuments/">Archaeological
           Survey of India (ASI)</a>.</span>
-    </div>
-    <div id='feature-table'> </div>
-  </footer>
+      </div>
+      <div id='feature-table'> </div>
+    </footer>
 
-  <script>
-    // Configure cors-anywhere proxy server for WMS services that has CORS enabled
-    // Deploy custom proxy instance at https://github.com/asg017/cors-anywhere-observable and whitelist the deploy url
+    <script>
+      // Configure cors-anywhere proxy server for WMS services that has CORS enabled
+      // Deploy custom proxy instance at https://github.com/asg017/cors-anywhere-observable and whitelist the deploy url
 
-    const cors_anywhere_url = window.location.href.indexOf('publicmap.github.io') > 0 ?
-      'https://publicmap-cors-anywhere.herokuapp.com/' : 'https://cors-anywhere.herokuapp.com/'
+      const cors_anywhere_url = window.location.href.indexOf('publicmap.github.io') > 0 ?
+        'https://publicmap-cors-anywhere.herokuapp.com/' : 'https://cors-anywhere.herokuapp.com/'
 
-    // Enable Mapbox services
-    mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiemdYSVVLRSJ9.g3lbg_eN0kztmsfIPxa9MQ';
+      // Enable Mapbox services
+      mapboxgl.accessToken = 'pk.eyJ1IjoicGxhbmVtYWQiLCJhIjoiemdYSVVLRSJ9.g3lbg_eN0kztmsfIPxa9MQ';
 
-    // App configuration
-    const _app = {
-      map: {
-        init: {
-          container: 'map',
-          style: 'https://cdn.jsdelivr.net/gh/mapbox/mapbox-gl-styles/styles/empty-v8.json',
-          zoom: 4,
-          center: [74.5447, 20.6892],
-          maxBounds: [63, 5, 101, 40],
-          pitchWithRotate: false,
-          hash: true
-        },
-        bounds: [66, 7, 99, 37],
-        layers: [{
-            id: 'osm-tiles',
-            type: 'raster',
-            source: {
-              type: 'raster',
-              // Add OSM tiles: https://wiki.openstreetmap.org/wiki/Tile_servers
-              tiles: [
-                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
-              ],
-              tileSize: 256,
-              attribution: 'Basemap <a href="https://www.osm.org" target=_blank>©  OpenStreetMap contributors</a>'
-            },
-            paint: {
-              'raster-opacity': {
-                stops: [
-                  [10, 0.6],
-                  [16, 0.9]
-                ]
-              }
-            }
+      // App configuration
+      const _app = {
+        map: {
+          init: {
+            container: 'map',
+            style: 'https://cdn.jsdelivr.net/gh/mapbox/mapbox-gl-styles/styles/empty-v8.json',
+            zoom: 3.7,
+            center: [82, 23],
+            maxBounds: [60, 5, 104, 40],
+            pitchWithRotate: false,
+            hash: true
           },
-          {
-            id: 'asi-monuments-areas',
-            type: 'raster',
-            source: {
+          bounds: [66, 7, 99, 37],
+          layers: [{
+              id: 'osm-tiles',
               type: 'raster',
-              tiles: [
-                getMapUrl({
+              source: {
+                type: 'raster',
+                // Add OSM tiles: https://wiki.openstreetmap.org/wiki/Tile_servers
+                tiles: [
+                  'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                ],
+                tileSize: 256,
+                attribution: 'Basemap <a href="https://www.osm.org" target=_blank>©  OpenStreetMap contributors</a>'
+              },
+              paint: {
+                'raster-opacity': {
+                  stops: [
+                    [10, 0.6],
+                    [16, 0.9]
+                  ]
+                }
+              }
+            },
+            {
+              id: 'india-land-boundary',
+              type: 'line',
+              source: {
+                type: 'geojson',
+                data: 'https://raw.githubusercontent.com/planemad/maps/master/Country/india-land-simplified.geojson'
+              },
+              paint: {
+                'line-color': 'purple',
+                'line-opacity': 0.2
+              }
+            },
+            {
+              id: 'asi-monuments-areas',
+              type: 'raster',
+              source: {
+                type: 'raster',
+                tiles: [
+                  getMapUrl({
+                    baseUrl: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
+                    layers: 'asi:protected_areas'
+                  })
+                ],
+                tileSize: 256,
+                minzoom: 12
+              },
+              paint: {}
+            },
+            {
+              id: 'asi-monuments',
+              type: 'raster',
+              source: {
+                type: 'raster',
+                tiles: [getMapUrl({
                   baseUrl: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
-                  layers: 'asi:protected_areas'
-                })
-              ],
-              tileSize: 256,
-              minzoom: 12
-            },
-            paint: {}
-          },
-          {
-            id: 'asi-monuments',
-            type: 'raster',
-            source: {
-              type: 'raster',
-              tiles: [getMapUrl({
-                baseUrl: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
-                layers: 'asi:monuments2'
-              })],
-              tileSize: 256,
-              attribution: 'Monuments: <a href="https://bhuvan-app1.nrsc.gov.in/culture_monuments/">ASI/Bhuvan</a>'
-            },
-            paint: {
-              'raster-hue-rotate': 40,
-              'raster-contrast': -0.2
+                  layers: 'asi:monuments2'
+                })],
+                tileSize: 256,
+                attribution: 'Monuments: <a href="https://bhuvan-app1.nrsc.gov.in/culture_monuments/">ASI/Bhuvan</a>'
+              },
+              paint: {
+                'raster-hue-rotate': 40,
+                'raster-contrast': -0.2
+              }
+            }
+          ],
+          onClick: {
+            getFeatureInfo: {
+              url: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
+              layer: 'asi:monuments2'
             }
           }
-        ],
-        onClick: {
-          getFeatureInfo: {
-            url: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
-            layer: 'asi:monuments2'
-          }
         }
       }
-    }
 
-    var map = new mapboxgl.Map(_app.map.init);
-    
-    // Set initial view to the defined bounds
-    if (typeof _app.map.bounds !== 'undefined') {
-      map.fitBounds(_app.map.bounds);
-    }
+      // Initialize GL map
+      var map = new mapboxgl.Map(_app.map.init);
 
-    map.on('load', function () {
-
-      geolocateControl.trigger();
-
-      _app.map.layers.forEach(layer => map.addLayer(layer))
-
-      // Layers for data from WMS get feature info
-      map.addSource('feature-info-source', {
-        type: 'geojson',
-        data: null
-      })
-      map.addLayer({
-        id: 'feature-info',
-        type: 'circle',
-        source: 'feature-info-source',
-        paint: {
-          'circle-color': 'red',
-          'circle-radius': 4
-        }
-      });
-
-    });
-
-    // Add  map UI controls
-    var nav = new mapboxgl.NavigationControl();
-    map.addControl(nav, 'top-right');
-
-    if (typeof mapboxgl.accessToken !== 'undefined') {
-      const geocoder = new MapboxGeocoder({
-        accessToken: mapboxgl.accessToken,
-
-        // limit results 
-        country: 'in',
-
-        // further limit results to the geographic bounds representing the region
-        bbox: _app.map.bounds
-
-      });
-      map.addControl(geocoder, 'top-left');
-
-      // Listen for the `result` event from the MapboxGeocoder that is triggered when a user
-      // makes a selection and add a symbol that matches the result.
-      geocoder.on('result', function (event) {
-        console.log(event)
-      });
-
-    }
-
-    var scale = new mapboxgl.ScaleControl({
-      maxWidth: 80,
-      unit: 'metric'
-    });
-    map.addControl(scale);
-
-    const geolocateControl = new mapboxgl.GeolocateControl({
-      positionOptions: {
-        enableHighAccuracy: false
-      },
-      trackUserLocation: true,
-      fitBoundsOptions: {
-        maxZoom: 6
+      // Set initial view to the defined bounds
+      if (typeof _app.map.bounds !== 'undefined') {
+        map.fitBounds(_app.map.bounds);
       }
-    })
-    map.addControl(geolocateControl, 'bottom-left');
 
-    map.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
+      map.on('load', () => {
 
 
-    // When a click event occurs on a feature in the places layer, open a popup at the
-    // location of the feature, with description HTML from its properties.
-    map.on('click', function (e) {
+        geolocateControl.trigger();
 
-      getFeatureInfo(map, e, {
-        url: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
-        layer: 'asi:monuments2'
-      });
 
-    });
+        _app.map.layers.forEach(layer => map.addLayer(layer))
 
-    function getFeatureInfo(map, clickEvent, WMSLayer, buffer = 50) {
 
-      let coordinates = clickEvent.lngLat;
-      let requestFormat = 'application/json';
-      let maxFeatures = 100;
-
-      // Create a bbox of map bounds
-      const bbox = [map.getBounds()._sw.lng, map.getBounds()._sw.lat, map.getBounds()._ne.lng, map.getBounds()._ne.lat]
-
-      // Construct the WMS GetFeatureInfo URL
-      const getFeatureInfoUrl =
-        `${WMSLayer.url}?REQUEST=GetFeatureInfo&EXCEPTIONS=${requestFormat}&BBOX=${bbox.join(',')}&SERVICE=WMS&INFO_FORMAT=${requestFormat}&QUERY_LAYERS=${WMSLayer.layer}&FEATURE_COUNT=${maxFeatures}&Layers=${WMSLayer.layer}&WIDTH=${map._container.clientWidth}&HEIGHT=${map._container.clientHeight}&format=image%2Fpng&styles=&srs=EPSG%3A4326&version=1.1.1&x=${clickEvent.point.x}&y=${clickEvent.point.y}&buffer=${buffer}`
-
-      fetch(getFeatureInfoUrl).then(response => {
-          return response.json();
+        // Layers for data from WMS get feature info
+        map.addSource('feature-info-source', {
+          type: 'geojson',
+          data: null
         })
-        .then(function (data) {
-
-          map.getSource('feature-info-source').setData(data);
-
-          let table_HTML = (new TableBuilder({
-              'class': 'popup-table'
-            }))
-            .setHeaders({
-              photo: 'Photo',
-              name: 'Name',
-              location: 'Location'
-            })
-            .setData(data.features.map(d => {
-              const img_url = d.properties.photo ?
-                `https://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}` :
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/100px-No_image_available.svg.png';
-              const monument_info_url =
-                `https://www.google.co.in/search?q=${d.properties.monumentna} '${d.properties.location}'`
-              d.properties.photo_img =
-                `<a href="${img_url}" target=_blank><img src="${img_url}" width=100></a>`;
-              const location_info_url =
-                `https://www.google.co.in/search?q='${d.properties.location}' ${d.properties.state}`
-
-              return {
-                photo: `<a href="${img_url}" target=_blank><img src="${img_url}" width=200></a>`,
-                name: `${d.properties.monumentna}<br><span class="txt-xs txt-kbd">${d.properties.mon_num}</span><div><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a></div>`,
-                location: `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})<div><a href="${location_info_url}" class="txt-s" target=_blank>Google</a></div>`
-              }
-
-            }))
-            .render();
-
-          $('#feature-table').html(table_HTML);
-
-          map.resize();
-
-          if (data.features.length) {
-            map.fitBounds(turf.bbox(data), {
-              padding: 20,
-              maxZoom: 15
-            });
-          } else {
-            map.fitBounds(_app.map.init.fitBounds);
+        map.addLayer({
+          id: 'feature-info',
+          type: 'circle',
+          source: 'feature-info-source',
+          paint: {
+            'circle-color': 'red',
+            'circle-radius': 4
           }
-
-
         });
 
-    }
+        map.on('mousemove', 'feature-info', function(e) {
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(e.features[0].properties.name)
+            .addTo(map);
+        });
 
-    function getMapUrl(config) {
-      return `${config.baseUrl}?STYLES=&LAYERS=${config.layers}&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`
-    }
-  </script>
-
-  <!-- Global site tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-67847650-2"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-
-    function gtag() {
-      dataLayer.push(arguments);
-    }
-    gtag('js', new Date());
-
-    gtag('config', 'UA-67847650-2');
-  </script>
+      });
 
 
-</body>
+      // Add  map UI controls
+      var nav = new mapboxgl.NavigationControl();
+      map.addControl(nav, 'top-right');
+
+      if (typeof mapboxgl.accessToken !== 'undefined') {
+        const geocoder = new MapboxGeocoder({
+          accessToken: mapboxgl.accessToken,
+
+          // limit results 
+          country: 'in',
+
+          // further limit results to the geographic bounds representing the region
+          bbox: _app.map.bounds
+
+        });
+        map.addControl(geocoder, 'top-left');
+
+        // Listen for the `result` event from the MapboxGeocoder that is triggered when a user
+        // makes a selection and add a symbol that matches the result.
+        geocoder.on('result', function(event) {
+          console.log(event)
+        });
+
+      }
+
+      var scale = new mapboxgl.ScaleControl({
+        maxWidth: 80,
+        unit: 'metric'
+      });
+      map.addControl(scale);
+
+
+      const geolocateControl = new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: false,
+          timeout: 4000
+        },
+        trackUserLocation: true,
+        fitBoundsOptions: {
+          maxZoom: 6
+        }
+      })
+
+      // Add geolocate control on mobile devices else fallback to IP geolocation
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+
+        map.addControl(geolocateControl, 'bottom-left');
+
+        geolocateControl.on('trackuserlocationstart', () => fetchFeaturesInView());
+
+        geolocateControl.on('error', (e) => {
+
+          // Try IP Geolocation
+          fetch('https://publicmap-freegeoip.herokuapp.com/json/')
+            .then(response => response.json())
+            .then(body => {
+              map.flyTo({
+                center: [body.longitude, body.latitude],
+                zoom: 6
+              });
+              fetchFeaturesInView();
+            })
+
+          if (e.PERMISSION_DENIED == 1) {
+            map.removeControl(geolocateControl);
+          }
+
+        })
+
+      } else {
+        map.on('load', () => {
+          // Try IP Geolocation
+          fetch('https://publicmap-freegeoip.herokuapp.com/json/')
+            .then(response => response.json())
+            .then(body => {
+              map.flyTo({
+                center: [body.longitude, body.latitude],
+                zoom: 6
+              });
+            })
+        })
+      }
+
+      function fetchFeaturesInView() {
+
+      }
+
+      map.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
+
+
+      // When a click event occurs on a feature in the places layer, open a popup at the
+      // location of the feature, with description HTML from its properties.
+      map.on('click', function(e) {
+
+        getFeatureInfo(map, e, {
+          url: `${cors_anywhere_url}https://bhuvan5.nrsc.gov.in/bhuvan/asi/wms`,
+          layer: 'asi:monuments2'
+        });
+
+      });
+
+      function getFeatureInfo(map, clickEvent, WMSLayer, buffer = 50) {
+
+        let coordinates = clickEvent.lngLat;
+        let requestFormat = 'application/json';
+        let maxFeatures = 100;
+
+        // Create a bbox of map bounds
+        const bbox = [map.getBounds()._sw.lng, map.getBounds()._sw.lat, map.getBounds()._ne.lng, map.getBounds()._ne.lat]
+
+        // Construct the WMS GetFeatureInfo URL
+        const getFeatureInfoUrl =
+          `${WMSLayer.url}?REQUEST=GetFeatureInfo&EXCEPTIONS=${requestFormat}&BBOX=${bbox.join(',')}&SERVICE=WMS&INFO_FORMAT=${requestFormat}&QUERY_LAYERS=${WMSLayer.layer}&FEATURE_COUNT=${maxFeatures}&Layers=${WMSLayer.layer}&WIDTH=${map._container.clientWidth}&HEIGHT=${map._container.clientHeight}&format=image%2Fpng&styles=&srs=EPSG%3A4326&version=1.1.1&x=${clickEvent.point.x}&y=${clickEvent.point.y}&buffer=${buffer}`
+
+        fetch(getFeatureInfoUrl).then(response => {
+            return response.json();
+          })
+          .then(function(data) {
+
+            map.getSource('feature-info-source').setData(data);
+
+            let table_HTML = (new TableBuilder({
+                'class': 'popup-table'
+              }))
+              .setHeaders({
+                photo: 'Photo',
+                name: 'Name',
+                location: 'Location'
+              })
+              .setData(data.features.map(d => {
+                const img_url = d.properties.photo ?
+                  `http://bhuvan3.nrsc.gov.in/2dresources/asi/${d.properties.photo.toLowerCase()}` :
+                  'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/100px-No_image_available.svg.png';
+
+                const monument_info_url =
+                  `https://www.google.co.in/search?q=${d.properties.monumentna} '${d.properties.location}'`
+                d.properties.photo_img =
+                  `<a href="${img_url}" target=_blank><img src="${img_url}" width=100></a>`;
+                const location_info_url =
+                  `https://www.google.co.in/search?q='${d.properties.location}' ${d.properties.state}`;
+
+                const id = `N-${d.properties.mon_num.slice(3,5)}-${parseInt(d.properties.mon_num.slice(5,8))}`;
+                const wikidata_id_url = `https://query.wikidata.org/#%23ASI%20Monument%20ID%0ASELECT%20%3Fitem%20%3FitemLabel%20WHERE%20%7B%0A%20%20%3Fitem%20wdt%3AP1371%20%22${id}%22.%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22%5BAUTO_LANGUAGE%5D%2Cen%22.%20%7D%0A%7D`;
+
+                return {
+                  photo: `<a href="${img_url}" target=_blank><img src="${img_url}" width=200></a>`,
+                  name: `${d.properties.monumentna}<br><span class="txt-xs txt-kbd"><a href="${wikidata_id_url}" target=_blank>${d.properties.mon_num}</a></span><div><a href="${monument_info_url}" class="txt-s" target=_blank>Google</a></div>`,
+                  location: `${d.properties.location}, ${d.properties.district}, ${d.properties.state} (${d.properties.asicircle})<div><a href="${location_info_url}" class="txt-s" target=_blank>Google</a></div>`
+                }
+
+              }))
+              .render();
+
+            $('#feature-table').html(table_HTML);
+
+            map.resize();
+
+            if (data.features.length) {
+              map.fitBounds(turf.bbox(data), {
+                padding: 20,
+                maxZoom: 15
+              });
+            } else {
+              map.fitBounds(_app.map.init.fitBounds);
+            }
+
+
+          });
+
+      }
+
+      function getMapUrl(config) {
+        return `${config.baseUrl}?STYLES=&LAYERS=${config.layers}&FORMAT=image/png&transparent=true&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`
+      }
+
+    </script>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-67847650-2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+
+      gtag('config', 'UA-67847650-2');
+
+    </script>
+
+
+  </body>
 
 </html>
